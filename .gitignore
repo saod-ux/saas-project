@@ -1,0 +1,34 @@
+# Node
+node_modules/
+.npm/
+package-lock.json
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# Turbo/Build
+.turbo/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+
+# Coverage
+coverage/
+
+# Cache
+.cache/
