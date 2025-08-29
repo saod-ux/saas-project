@@ -52,7 +52,7 @@ export default function AdminProductsPage() {
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
 
@@ -228,30 +228,33 @@ export default function AdminProductsPage() {
       
       const productId = json.data.id
       
-      // If there's a selected file, upload and attach it
-      if (selectedFile) {
-        setUploadProgress('Uploading image...')
-        const fileId = await uploadImage(selectedFile)
+      // If there are selected files, upload and attach them
+      if (selectedFiles.length > 0) {
+        setUploadProgress('Uploading images...')
         
-        if (fileId) {
-          // Attach file to product
-          const attachRes = await fetch('/api/v1/uploads/attach', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-tenant-slug': tenantSlug
-            },
-            body: JSON.stringify({
-              key: `product-${productId}-${selectedFile.name}`, // This would be the actual key from upload
-              filename: selectedFile.name,
-              mimeType: selectedFile.type,
-              size: selectedFile.size,
-              productId: productId
-            })
-          })
+        for (const file of selectedFiles) {
+          const fileId = await uploadImage(file)
           
-          if (!attachRes.ok) {
-            console.warn('Failed to attach image to product')
+          if (fileId) {
+            // Attach file to product
+            const attachRes = await fetch('/api/v1/uploads/attach', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-tenant-slug': tenantSlug
+              },
+              body: JSON.stringify({
+                key: `product-${productId}-${file.name}`, // This would be the actual key from upload
+                filename: file.name,
+                mimeType: file.type,
+                size: file.size,
+                productId: productId
+              })
+            })
+            
+            if (!attachRes.ok) {
+              console.warn('Failed to attach image to product')
+            }
           }
         }
       }
@@ -260,7 +263,7 @@ export default function AdminProductsPage() {
       setTitle('')
       setPrice('')
       setStock('')
-      setSelectedFile(null)
+      setSelectedFiles([])
       setUploadProgress('')
       await load()
     } catch (e: any) {
@@ -272,9 +275,9 @@ export default function AdminProductsPage() {
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) {
+      setSelectedFiles(files)
     }
   }
 
@@ -345,15 +348,22 @@ export default function AdminProductsPage() {
               {products.map((p) => (
                 <tr key={p.id} className="border-t">
                   <td className="px-3 py-2">
-                    {p.productImages?.[0] ? (
-                      <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs">
-                        📷
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs">
-                        No img
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {p.productImages && p.productImages.length > 0 ? (
+                        <>
+                          <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs">
+                            📷
+                          </div>
+                          {p.productImages.length > 1 && (
+                            <span className="text-xs text-gray-500">+{p.productImages.length - 1}</span>
+                          )}
+                        </>
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs">
+                          No img
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2">{p.title}</td>
                   <td className="px-3 py-2">${p.price}</td>
@@ -405,18 +415,23 @@ export default function AdminProductsPage() {
                 <Input id="stock" type="number" value={stock} onChange={(e) => setStock(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="image">Product Image (Optional)</Label>
+                <Label htmlFor="image">Product Images (Optional)</Label>
                 <Input 
                   id="image" 
                   type="file" 
                   accept="image/*"
+                  multiple
                   onChange={handleFileSelect}
                   disabled={uploading}
                 />
-                {selectedFile && (
-                  <p className="text-sm text-gray-600">
-                    Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-                  </p>
+                {selectedFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {selectedFiles.map((file, index) => (
+                      <p key={index} className="text-sm text-gray-600">
+                        Selected: {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                      </p>
+                    ))}
+                  </div>
                 )}
               </div>
               {uploadProgress && (

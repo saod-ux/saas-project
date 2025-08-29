@@ -257,12 +257,21 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image */}
           <div className="space-y-4">
-            <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
               {selectedVariant?.images[0]?.key || product.image ? (
-                <span className="text-6xl">📷</span>
-              ) : (
+                <img 
+                  src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${selectedVariant?.images[0]?.key || product.image}`}
+                  alt={product.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling!.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className={`w-full h-full flex items-center justify-center ${(selectedVariant?.images[0]?.key || product.image) ? 'hidden' : 'flex'}`}>
                 <span className="text-6xl text-gray-400">🖼️</span>
-              )}
+              </div>
             </div>
             
             {/* Variant Images */}
@@ -271,9 +280,20 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 {selectedVariant.images.map((image) => (
                   <div
                     key={image.id}
-                    className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center flex-shrink-0"
+                    className="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0"
                   >
-                    <span className="text-lg">📷</span>
+                    <img 
+                      src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${image.key}`}
+                      alt={image.alt || product.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling!.style.display = 'flex';
+                      }}
+                    />
+                    <div className="w-full h-full flex items-center justify-center hidden">
+                      <span className="text-lg">📷</span>
+                    </div>
                   </div>
                 ))}
               </div>

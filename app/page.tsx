@@ -261,47 +261,60 @@ export default function StorefrontPage() {
                 <p className="text-gray-500">No products found.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {filteredProducts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                  <div key={product.id} className="bg-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                     {/* Product Image */}
-                    <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center">
+                    <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
                       {product.image ? (
-                        <span className="text-2xl">📷</span>
-                      ) : (
+                        <img 
+                          src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling!.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex items-center justify-center ${product.image ? 'hidden' : 'flex'}`}>
                         <span className="text-2xl text-gray-400">🖼️</span>
-                      )}
+                      </div>
                     </div>
 
                     {/* Product Info */}
-                    <div className="p-4">
-                      <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">
+                    <div className="p-6">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-lg line-clamp-2">
                         {product.title}
                       </h3>
                       
                       {product.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
                           {product.description}
                         </p>
                       )}
 
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold text-gray-900">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-2xl font-bold text-blue-600">
                           ${product.price}
                         </span>
                         
                         <Button
                           size="sm"
-                          onClick={() => window.location.href = `/product/${product.id}`}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={() => {
+                            window.location.href = `/product/${product.id}`;
+                          }}
                         >
                           View Details
                         </Button>
                       </div>
 
                       {product.hasVariants && (
-                        <p className="text-xs text-blue-600 mt-2">
-                          Multiple options available
-                        </p>
+                        <div className="flex items-center gap-1 text-xs text-blue-600">
+                          <span>⚙️</span>
+                          <span>Multiple options available</span>
+                        </div>
                       )}
                     </div>
                   </div>
