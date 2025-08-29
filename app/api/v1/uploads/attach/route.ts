@@ -3,13 +3,23 @@ import { z } from 'zod'
 import { prismaRW } from '@/lib/db'
 
 const attachSchema = z.object({
-  key: z.string().min(1),
-  filename: z.string().min(1),
-  mimeType: z.string().min(1),
-  size: z.number().positive(),
+  // For file upload
+  key: z.string().min(1).optional(),
+  filename: z.string().min(1).optional(),
+  mimeType: z.string().min(1).optional(),
+  size: z.number().positive().optional(),
+  // For file attachment to product
+  fileId: z.string().min(1).optional(),
   productId: z.string().min(1).optional(),
   alt: z.string().optional(),
   order: z.number().default(0)
+}).refine((data) => {
+  // Either file upload data OR file attachment data must be provided
+  const hasUploadData = data.key && data.filename && data.mimeType && data.size;
+  const hasAttachmentData = data.fileId && data.productId;
+  return hasUploadData || hasAttachmentData;
+}, {
+  message: "Either file upload data (key, filename, mimeType, size) or file attachment data (fileId, productId) must be provided"
 })
 
 // POST /api/v1/uploads/attach - Record uploaded file and optionally attach to product
@@ -80,23 +90,41 @@ export async function POST(request: NextRequest) {
     const validatedData = attachSchema.parse(body)
     console.log('Validated attach data:', validatedData)
 
-    // Record file in database
-    const file = await prismaRW.file.create({
-      data: {
-        tenantId: tenant.id,
-        key: validatedData.key,
-        filename: validatedData.filename,
-        mimeType: validatedData.mimeType,
-        size: validatedData.size,
-        uploadedBy: user.id,
-        metadata: {}
-      }
-    })
-
-    console.log('File recorded:', file.id)
-
+    let file = null
     let productImage = null
-    if (validatedData.productId) {
+
+    if (validatedData.key && validatedData.filename && validatedData.mimeType && validatedData.size) {
+      // Record file in database (file upload)
+      file = await prismaRW.file.create({
+        data: {
+          tenantId: tenant.id,
+          key: validatedData.key,
+          filename: validatedData.filename,
+          mimeType: validatedData.mimeType,
+          size: validatedData.size,
+          uploadedBy: user.id,
+          metadata: {}
+        }
+      })
+
+      console.log('File recorded:', file.id)
+    } else if (validatedData.fileId && validatedData.productId) {
+      // Attach existing file to product
+      file = await prismaRW.file.findUnique({
+        where: { id: validatedData.fileId }
+      })
+
+      if (!file) {
+        return NextResponse.json(
+          { error: 'File not found' },
+          { status: 404 }
+        )
+      }
+
+      console.log('Found existing file:', file.id)
+    }
+
+    if (validatedData.productId && file) {
       // Attach to product if productId provided
       productImage = await prismaRW.productImage.create({
         data: {

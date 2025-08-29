@@ -236,7 +236,7 @@ export default function AdminProductsPage() {
           const fileId = await uploadImage(file)
           
           if (fileId) {
-            // Attach file to product
+            // Attach file to product using the file ID
             const attachRes = await fetch('/api/v1/uploads/attach', {
               method: 'POST',
               headers: {
@@ -244,10 +244,7 @@ export default function AdminProductsPage() {
                 'x-tenant-slug': tenantSlug
               },
               body: JSON.stringify({
-                key: `product-${productId}-${file.name}`, // This would be the actual key from upload
-                filename: file.name,
-                mimeType: file.type,
-                size: file.size,
+                fileId: fileId,
                 productId: productId
               })
             })
