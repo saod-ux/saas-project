@@ -278,7 +278,10 @@ export default function StorefrontPage() {
                         />
                       ) : null}
                       <div className={`w-full h-full flex items-center justify-center ${product.image ? 'hidden' : 'flex'}`}>
-                        <span className="text-2xl text-gray-400">🖼️</span>
+                        <div className="text-center">
+                          <span className="text-4xl text-gray-400 mb-2">📦</span>
+                          <p className="text-xs text-gray-500">No Image</p>
+                        </div>
                       </div>
                     </div>
 

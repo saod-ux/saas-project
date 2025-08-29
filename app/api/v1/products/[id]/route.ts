@@ -27,6 +27,9 @@ export async function GET(
       include: {
         productImages: {
           orderBy: { order: 'asc' },
+          include: {
+            file: true // Include the file data to get the key
+          }
         },
       },
     })
@@ -38,7 +41,13 @@ export async function GET(
       )
     }
     
-    return NextResponse.json({ data: product })
+    // Transform the data to include the image key
+    const transformedProduct = {
+      ...product,
+      image: product.productImages[0]?.file?.key || null
+    }
+    
+    return NextResponse.json({ data: transformedProduct })
   } catch (error) {
     console.error('Error fetching product:', error)
     return NextResponse.json(
@@ -88,11 +97,20 @@ export async function PATCH(
       include: {
         productImages: {
           orderBy: { order: 'asc' },
+          include: {
+            file: true // Include the file data to get the key
+          }
         },
       },
     })
     
-    return NextResponse.json({ data: product })
+    // Transform the data to include the image key
+    const transformedProduct = {
+      ...product,
+      image: product.productImages[0]?.file?.key || null
+    }
+    
+    return NextResponse.json({ data: transformedProduct })
   } catch (error) {
     if (error instanceof Error && error.message.includes('validation')) {
       return NextResponse.json(

@@ -100,14 +100,23 @@ export async function GET(request: NextRequest) {
           productImages: {
             orderBy: { order: 'asc' },
             take: 1, // Just get the first image for the list
+            include: {
+              file: true // Include the file data to get the key
+            }
           },
         },
       }),
       prismaRO.product.count({ where }),
     ])
     
+    // Transform the data to include the image key
+    const transformedProducts = products.map((product: any) => ({
+      ...product,
+      image: product.productImages[0]?.file?.key || null
+    }))
+    
     return NextResponse.json({
-      data: products,
+      data: transformedProducts,
       pagination: {
         page,
         limit,

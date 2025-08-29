@@ -270,7 +270,10 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 />
               ) : null}
               <div className={`w-full h-full flex items-center justify-center ${(selectedVariant?.images[0]?.key || product.image) ? 'hidden' : 'flex'}`}>
-                <span className="text-6xl text-gray-400">🖼️</span>
+                <div className="text-center">
+                  <span className="text-6xl text-gray-400 mb-4">📦</span>
+                  <p className="text-sm text-gray-500">No Image Available</p>
+                </div>
               </div>
             </div>
             
