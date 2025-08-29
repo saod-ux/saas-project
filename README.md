@@ -234,3 +234,11 @@ macOS/Linux: edit `/etc/hosts`
 127.0.0.1 acme.localhost moka.localhost
 ```
 Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` with the same line above.
+
+## Phase 2 Status (Auth, RBAC, Uploads)
+
+- Authentication via Clerk with RBAC guards (OWNER/ADMIN/STAFF/VIEWER)
+- Endpoints hardened with tenant isolation and Zod validation
+- File uploads: presign → upload → attach (Cloudflare R2 compatible)
+- Admin UI: products list, create modal with optional image upload
+- Dev notes: ensure NEXT_PUBLIC_APP_URL and R2_PUBLIC_URL are set for images
