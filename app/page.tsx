@@ -267,11 +267,15 @@ export default function StorefrontPage() {
                     {/* Product Image */}
                     <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
                       {product.image ? (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-white text-lg font-semibold text-center px-4">
-                            {product.title}
-                          </span>
-                        </div>
+                        <img 
+                          src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling!.style.display = 'flex';
+                          }}
+                        />
                       ) : null}
                       <div className={`w-full h-full flex items-center justify-center ${product.image ? 'hidden' : 'flex'}`}>
                         <div className="text-center">

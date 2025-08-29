@@ -259,11 +259,15 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           <div className="space-y-4">
             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
               {selectedVariant?.images[0]?.key || product.image ? (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <span className="text-white text-2xl font-semibold text-center px-8">
-                    {product.title}
-                  </span>
-                </div>
+                <img 
+                  src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${selectedVariant?.images[0]?.key || product.image}`}
+                  alt={product.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling!.style.display = 'flex';
+                  }}
+                />
               ) : null}
               <div className={`w-full h-full flex items-center justify-center ${(selectedVariant?.images[0]?.key || product.image) ? 'hidden' : 'flex'}`}>
                 <div className="text-center">
