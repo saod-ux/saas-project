@@ -194,7 +194,8 @@ export default function SettingsPage() {
         ) : error ? (
           <p className="text-red-600">{error}</p>
         ) : (
-          <Tabs defaultValue="general" className="space-y-6">
+          <>
+            <Tabs defaultValue="general" className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <Store className="h-4 w-4" />
@@ -460,11 +461,12 @@ export default function SettingsPage() {
           </Tabs>
 
           {/* Save Button */}
-          <div className="flex justify-end pt-6">
-            <Button onClick={saveSettings} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
+            <div className="flex justify-end pt-6">
+              <Button onClick={saveSettings} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Settings'}
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </div>
