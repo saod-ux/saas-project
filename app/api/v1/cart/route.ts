@@ -4,6 +4,7 @@ import { prismaRW, prismaRO } from '@/lib/db'
 
 const addToCartSchema = z.object({
   productId: z.string().min(1),
+  productVariantId: z.string().min(1).optional(), // Optional: for variant-specific items
   quantity: z.number().int().positive().max(100)
 })
 
@@ -96,6 +97,23 @@ export async function GET(request: NextRequest) {
                     orderBy: { order: 'asc' }
                   }
                 }
+              },
+              productVariant: {
+                include: {
+                  variantImages: {
+                    take: 1,
+                    orderBy: { order: 'asc' }
+                  },
+                  variantOptions: {
+                    include: {
+                      productOptionValue: {
+                        include: {
+                          productOption: true
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -105,7 +123,8 @@ export async function GET(request: NextRequest) {
 
     // Calculate totals
     const subtotal = cart.cartItems.reduce((sum, item) => {
-      return sum + (item.product.price.toNumber() * item.quantity)
+      const price = item.productVariant?.price || item.product.price
+      return sum + (price.toNumber() * item.quantity)
     }, 0)
 
     return NextResponse.json({
@@ -114,13 +133,23 @@ export async function GET(request: NextRequest) {
         items: cart.cartItems.map(item => ({
           id: item.id,
           productId: item.productId,
+          productVariantId: item.productVariantId,
           quantity: item.quantity,
           product: {
             id: item.product.id,
             title: item.product.title,
-            price: item.product.price,
+            price: item.productVariant?.price || item.product.price,
             currency: item.product.currency,
-            image: item.product.productImages[0]?.file?.key || null
+            image: item.productVariant?.variantImages[0]?.file?.key || 
+                   item.product.productImages[0]?.file?.key || null,
+            variant: item.productVariant ? {
+              id: item.productVariant.id,
+              sku: item.productVariant.sku,
+              options: item.productVariant.variantOptions.map(vo => ({
+                name: vo.productOptionValue.productOption.name,
+                value: vo.productOptionValue.value
+              }))
+            } : null
           }
         })),
         subtotal,
@@ -201,12 +230,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check stock
-    if (product.stock < validatedData.quantity) {
-      return NextResponse.json(
-        { error: 'Insufficient stock' },
-        { status: 400 }
-      )
+    // If variant is specified, verify it exists and check its stock
+    let variant = null
+    if (validatedData.productVariantId) {
+      variant = await prismaRO.productVariant.findFirst({
+        where: {
+          id: validatedData.productVariantId,
+          productId: validatedData.productId
+        }
+      })
+
+      if (!variant) {
+        return NextResponse.json(
+          { error: 'Product variant not found' },
+          { status: 404 }
+        )
+      }
+
+      if (variant.stock < validatedData.quantity) {
+        return NextResponse.json(
+          { error: 'Insufficient stock for this variant' },
+          { status: 400 }
+        )
+      }
+    } else {
+      // Check base product stock for simple products
+      if (product.stock < validatedData.quantity) {
+        return NextResponse.json(
+          { error: 'Insufficient stock' },
+          { status: 400 }
+        )
+      }
     }
 
     // Get or create cart
@@ -231,9 +285,10 @@ export async function POST(request: NextRequest) {
     // Add or update cart item
     const cartItem = await prismaRW.cartItem.upsert({
       where: {
-        cartId_productId: {
+        cartId_productId_productVariantId: {
           cartId: cart.id,
-          productId: validatedData.productId
+          productId: validatedData.productId,
+          productVariantId: validatedData.productVariantId || null
         }
       },
       update: {
@@ -242,12 +297,21 @@ export async function POST(request: NextRequest) {
       create: {
         cartId: cart.id,
         productId: validatedData.productId,
+        productVariantId: validatedData.productVariantId || null,
         quantity: validatedData.quantity
       },
       include: {
         product: {
           include: {
             productImages: {
+              take: 1,
+              orderBy: { order: 'asc' }
+            }
+          }
+        },
+        productVariant: {
+          include: {
+            variantImages: {
               take: 1,
               orderBy: { order: 'asc' }
             }
@@ -260,13 +324,15 @@ export async function POST(request: NextRequest) {
       data: {
         id: cartItem.id,
         productId: cartItem.productId,
+        productVariantId: cartItem.productVariantId,
         quantity: cartItem.quantity,
         product: {
           id: cartItem.product.id,
           title: cartItem.product.title,
-          price: cartItem.product.price,
+          price: cartItem.productVariant?.price || cartItem.product.price,
           currency: cartItem.product.currency,
-          image: cartItem.product.productImages[0]?.file?.key || null
+          image: cartItem.productVariant?.variantImages[0]?.file?.key || 
+                 cartItem.product.productImages[0]?.file?.key || null
         }
       },
       message: 'Item added to cart'

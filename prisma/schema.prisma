@@ -136,10 +136,11 @@ model Product {
   tenantId    String
   title       String
   description String?
-  price       Decimal  @db.Decimal(10, 2)
+  price       Decimal  @db.Decimal(10, 2) // Base price (for simple products)
   currency    String   @default("USD")
-  stock       Int      @default(0)
+  stock       Int      @default(0) // Base stock (for simple products)
   status      String   @default("active")
+  hasVariants Boolean  @default(false) // Whether product uses variants
   seoJson     Json     @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -149,10 +150,96 @@ model Product {
   productImages ProductImage[]
   cartItems    CartItem[]
   orderItems   OrderItem[]
+  productOptions ProductOption[]
+  productVariants ProductVariant[]
 
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
   @@map("products")
+}
+
+model ProductOption {
+  id        String   @id @default(cuid())
+  productId String
+  name      String   // e.g., "Size", "Color", "Material"
+  required  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValues      ProductOptionValue[]
+
+  @@index([productId, order])
+  @@map("product_options")
+}
+
+model ProductOptionValue {
+  id              String   @id @default(cuid())
+  productOptionId String
+  value           String   // e.g., "S", "M", "L" or "Red", "Blue", "Green"
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  productOption   ProductOption       @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
+  variantOptions  ProductVariantOption[]
+
+  @@index([productOptionId, order])
+  @@map("product_option_values")
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  sku       String?  @unique // Stock Keeping Unit
+  price     Decimal  @db.Decimal(10, 2)
+  stock     Int      @default(0)
+  weight    Decimal? @db.Decimal(8, 2) // in grams
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product        Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantOptions ProductVariantOption[]
+  variantImages  ProductVariantImage[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+
+  @@index([productId])
+  @@index([sku])
+  @@map("product_variants")
+}
+
+model ProductVariantOption {
+  id                  String   @id @default(cuid())
+  productVariantId    String
+  productOptionValueId String
+  createdAt           DateTime @default(now())
+
+  // Relations
+  productVariant      ProductVariant     @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  productOptionValue  ProductOptionValue @relation(fields: [productOptionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([productVariantId, productOptionValueId])
+  @@map("product_variant_options")
+}
+
+model ProductVariantImage {
+  id              String   @id @default(cuid())
+  productVariantId String
+  fileId          String
+  alt             String?
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  file           File           @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([productVariantId, order])
+  @@map("product_variant_images")
 }
 
 model ProductImage {
@@ -185,6 +272,7 @@ model File {
   // Relations
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   productImages ProductImage[]
+  variantImages ProductVariantImage[]
 
   @@index([tenantId, uploadedBy])
   @@map("files")
@@ -220,17 +308,20 @@ model Order {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Decimal @db.Decimal(10, 2)
-  total     Decimal @db.Decimal(10, 2)
-  createdAt DateTime @default(now())
+  id              String  @id @default(cuid())
+  orderId         String
+  productId       String
+  productVariantId String? // Optional: for variant-specific items
+  quantity        Int
+  price           Decimal @db.Decimal(10, 2)
+  total           Decimal @db.Decimal(10, 2)
+  variantData     Json    @default("{}") // Store selected options as JSON
+  createdAt       DateTime @default(now())
 
   // Relations
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant  ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("order_items")
@@ -253,18 +344,20 @@ model Cart {
 }
 
 model CartItem {
-  id        String  @id @default(cuid())
-  cartId    String
-  productId String
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String  @id @default(cuid())
+  cartId          String
+  productId       String
+  productVariantId String? // Optional: for variant-specific items
+  quantity        Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
-  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
-  @@unique([cartId, productId])
+  @@unique([cartId, productId, productVariantId])
   @@index([cartId])
   @@map("cart_items")
 }

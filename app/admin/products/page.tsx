@@ -383,13 +383,22 @@ export default function AdminProductsPage() {
                   <td className="px-3 py-2">{p.stock}</td>
                   <td className="px-3 py-2">{p.status}</td>
                   <td className="px-3 py-2">
-                    <Button
-                      size="sm"
-                      onClick={() => addToCart(p.id)}
-                      disabled={addingToCart === p.id}
-                    >
-                      {addingToCart === p.id ? 'Adding...' : 'Add to Cart'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => addToCart(p.id)}
+                        disabled={addingToCart === p.id}
+                      >
+                        {addingToCart === p.id ? 'Adding...' : 'Add to Cart'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.location.href = `/admin/products/${p.id}/options`}
+                      >
+                        Options
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

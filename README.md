@@ -243,7 +243,7 @@ Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` with the same line ab
 - Admin UI: products list, create modal with optional image upload
 - Dev notes: ensure NEXT_PUBLIC_APP_URL and R2_PUBLIC_URL are set for images
 
-## Phase 3 Status (Cart, Checkout, Payments)
+## Phase 3 Status (Cart, Checkout, Payments, Product Variants)
 
 - Cart functionality: add/remove items, update quantities
 - Checkout flow: order creation, payment initiation
@@ -251,6 +251,11 @@ Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` with the same line ab
 - Order lifecycle: PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED
 - Cart UI: `/cart` page with item management and checkout
 - Admin products: "Add to Cart" buttons for customer purchases
+- **Product Options & Variants**: Complete system for flexible product configurations
+  - Product options (Size, Color, Material, etc.) with custom values
+  - Product variants with SKU/price/stock/image per combination
+  - Variant-specific inventory management
+  - Cart/checkout support for variant selection
 
 ### Phase 3 Testing:
 1. Visit `http://acme.localhost:3002/admin/products`
@@ -258,3 +263,10 @@ Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` with the same line ab
 3. Visit `http://acme.localhost:3002/cart` to see cart
 4. Update quantities, remove items, or proceed to checkout
 5. Complete checkout to create order and payment record
+
+### Product Variants Testing:
+1. Visit `http://acme.localhost:3002/admin/products`
+2. Click "Options" on any product
+3. Create product options (e.g., Size: S/M/L, Color: Red/Blue/Green)
+4. Create variants with different option combinations
+5. Test cart/checkout with variant selection
