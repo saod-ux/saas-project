@@ -272,8 +272,12 @@ export default function StorefrontPage() {
                           alt={product.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
+                            console.log('Image failed to load:', `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`);
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.nextElementSibling!.style.display = 'flex';
+                          }}
+                          onLoad={() => {
+                            console.log('Image loaded successfully:', `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`);
                           }}
                         />
                       ) : null}
