@@ -23,6 +23,31 @@ enum MembershipStatus {
   SUSPENDED
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  MYFATOORAH
+  KNET
+  STRIPE
+}
+
 model Tenant {
   id          String   @id @default(cuid())
   name        String
@@ -38,6 +63,8 @@ model Tenant {
   orders      Order[]
   files       File[]
   invites     Invite[]
+  carts       Cart[]
+  payments    Payment[]
 
   @@map("tenants")
 }
@@ -55,6 +82,9 @@ model User {
   memberships Membership[]
   invites     Invite[]      @relation("InvitedBy")
   invitedMemberships Membership[] @relation("InvitedBy")
+  orders      Order[]
+  payments    Payment[]
+  carts       Cart[]
 
   @@map("users")
 }
@@ -109,7 +139,7 @@ model Product {
   price       Decimal  @db.Decimal(10, 2)
   currency    String   @default("USD")
   stock       Int      @default(0)
-  status      String   @default("active") // active, draft, archived
+  status      String   @default("active")
   seoJson     Json     @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -117,6 +147,8 @@ model Product {
   // Relations
   tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   productImages ProductImage[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
 
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
@@ -124,54 +156,140 @@ model Product {
 }
 
 model ProductImage {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   productId String
-  fileId    String  // Reference to File table
+  fileId    String
   alt       String?
-  order     Int     @default(0)
+  order     Int      @default(0)
   createdAt DateTime @default(now())
 
   // Relations
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  file    File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  file    File    @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   @@index([productId, order])
   @@map("product_images")
 }
 
 model File {
-  id        String   @id @default(cuid())
-  tenantId  String
-  key       String  // S3/R2 object key
-  filename  String
-  mimeType  String
-  size      Int
+  id         String   @id @default(cuid())
+  tenantId   String
+  key        String   @unique
+  filename   String
+  mimeType   String
+  size       Int
   uploadedBy String
-  metadata  Json     @default("{}")
-  createdAt DateTime @default(now())
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
 
   // Relations
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   productImages ProductImage[]
 
-  @@index([tenantId, createdAt])
-  @@index([key])
+  @@index([tenantId, uploadedBy])
   @@map("files")
 }
 
 model Order {
-  id           String   @id @default(cuid())
-  tenantId     String
-  status       String   @default("pending") // pending, paid, shipped, delivered, cancelled
-  totalsJson   Json     @default("{}")
-  customerJson Json     @default("{}")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String      @id @default(cuid())
+  tenantId      String
+  userId        String
+  orderNumber   String      @unique
+  status        OrderStatus @default(PENDING)
+  subtotal      Decimal     @db.Decimal(10, 2)
+  tax           Decimal     @db.Decimal(10, 2) @default(0)
+  shipping      Decimal     @db.Decimal(10, 2) @default(0)
+  total         Decimal     @db.Decimal(10, 2)
+  currency      String      @default("USD")
+  customerJson  Json        @default("{}")
+  shippingJson  Json        @default("{}")
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   // Relations
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  payments  Payment[]
 
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+  @@index([orderNumber])
   @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Cart {
+  id       String   @id @default(cuid())
+  tenantId String
+  userId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  @@unique([tenantId, userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+model Payment {
+  id              String         @id @default(cuid())
+  tenantId        String
+  orderId         String
+  userId          String
+  provider        PaymentProvider
+  providerOrderId String?        @unique
+  amount          Decimal        @db.Decimal(10, 2)
+  currency        String         @default("USD")
+  status          PaymentStatus  @default(PENDING)
+  metadata        Json           @default("{}")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([orderId])
+  @@index([providerOrderId])
+  @@map("payments")
 }

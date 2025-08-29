@@ -55,6 +55,7 @@ export default function AdminProductsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
+  const [addingToCart, setAddingToCart] = useState<string | null>(null)
 
   // Get tenant slug on mount
   useEffect(() => {
@@ -277,6 +278,36 @@ export default function AdminProductsPage() {
     }
   }
 
+  async function addToCart(productId: string) {
+    if (!isSignedIn || !tenantSlug) return
+    
+    setAddingToCart(productId)
+    try {
+      const res = await fetch('/api/v1/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-slug': tenantSlug
+        },
+        body: JSON.stringify({
+          productId,
+          quantity: 1
+        })
+      })
+      
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error?.error || 'Failed to add to cart')
+      }
+      
+      alert('Added to cart!')
+    } catch (e: any) {
+      alert(e.message)
+    } finally {
+      setAddingToCart(null)
+    }
+  }
+
   if (!isLoaded) {
     return <div className="p-6">Loading...</div>
   }
@@ -330,6 +361,7 @@ export default function AdminProductsPage() {
                 <th className="px-3 py-2 text-left">Price</th>
                 <th className="px-3 py-2 text-left">Stock</th>
                 <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -350,6 +382,15 @@ export default function AdminProductsPage() {
                   <td className="px-3 py-2">${p.price}</td>
                   <td className="px-3 py-2">{p.stock}</td>
                   <td className="px-3 py-2">{p.status}</td>
+                  <td className="px-3 py-2">
+                    <Button
+                      size="sm"
+                      onClick={() => addToCart(p.id)}
+                      disabled={addingToCart === p.id}
+                    >
+                      {addingToCart === p.id ? 'Adding...' : 'Add to Cart'}
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

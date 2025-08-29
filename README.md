@@ -242,3 +242,19 @@ Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` with the same line ab
 - File uploads: presign → upload → attach (Cloudflare R2 compatible)
 - Admin UI: products list, create modal with optional image upload
 - Dev notes: ensure NEXT_PUBLIC_APP_URL and R2_PUBLIC_URL are set for images
+
+## Phase 3 Status (Cart, Checkout, Payments)
+
+- Cart functionality: add/remove items, update quantities
+- Checkout flow: order creation, payment initiation
+- Payment providers: MyFatoorah, KNET, Stripe (stubbed)
+- Order lifecycle: PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED
+- Cart UI: `/cart` page with item management and checkout
+- Admin products: "Add to Cart" buttons for customer purchases
+
+### Phase 3 Testing:
+1. Visit `http://acme.localhost:3002/admin/products`
+2. Click "Add to Cart" on any product
+3. Visit `http://acme.localhost:3002/cart` to see cart
+4. Update quantities, remove items, or proceed to checkout
+5. Complete checkout to create order and payment record
