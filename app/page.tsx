@@ -268,18 +268,16 @@ export default function StorefrontPage() {
                     <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
                       {product.image ? (
                         <img 
-                          src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`}
+                          src={`/api/v1/images/${encodeURIComponent(product.image)}`}
                           alt={product.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            console.log('Image failed to load:', `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`);
-                            console.log('R2 URL:', process.env.NEXT_PUBLIC_R2_PUBLIC_URL);
-                            console.log('Image key:', product.image);
+                            console.log('Image failed to load:', `/api/v1/images/${encodeURIComponent(product.image)}`);
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.nextElementSibling!.style.display = 'flex';
                           }}
                           onLoad={() => {
-                            console.log('Image loaded successfully:', `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`);
+                            console.log('Image loaded successfully:', `/api/v1/images/${encodeURIComponent(product.image)}`);
                           }}
                         />
                       ) : null}
@@ -297,12 +295,7 @@ export default function StorefrontPage() {
                         {product.title}
                       </h3>
                       
-                      {/* Debug info - remove this later */}
-                      {product.image && (
-                        <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded">
-                          <div>Image URL: {process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/{product.image}</div>
-                        </div>
-                      )}
+
                       
                       {product.description && (
                         <p className="text-sm text-gray-600 mb-4 line-clamp-2">

@@ -260,7 +260,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
               {selectedVariant?.images[0]?.key || product.image ? (
                 <img 
-                  src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${selectedVariant?.images[0]?.key || product.image}`}
+                  src={`/api/v1/images/${encodeURIComponent(selectedVariant?.images[0]?.key || product.image)}`}
                   alt={product.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -286,7 +286,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                     className="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0"
                   >
                     <img 
-                      src={`https://picsum.photos/80/80?random=${image.id}`}
+                      src={`/api/v1/images/${encodeURIComponent(image.key)}`}
                       alt={image.alt || product.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
