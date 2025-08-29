@@ -268,7 +268,7 @@ export default function StorefrontPage() {
                     <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
                       {product.image ? (
                         <img 
-                          src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`}
+                          src={`https://via.placeholder.com/400x400/3B82F6/FFFFFF?text=${encodeURIComponent(product.title)}`}
                           alt={product.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {

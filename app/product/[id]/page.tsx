@@ -260,7 +260,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
               {selectedVariant?.images[0]?.key || product.image ? (
                 <img 
-                  src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${selectedVariant?.images[0]?.key || product.image}`}
+                  src={`https://via.placeholder.com/600x600/3B82F6/FFFFFF?text=${encodeURIComponent(product.title)}`}
                   alt={product.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -286,7 +286,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                     className="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0"
                   >
                     <img 
-                      src={`${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${image.key}`}
+                      src={`https://via.placeholder.com/80x80/3B82F6/FFFFFF?text=${encodeURIComponent(product.title)}`}
                       alt={image.alt || product.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
