@@ -1,0 +1,177 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  domain      String?  @unique
+  settingsJson Json    @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  memberships Membership[]
+  products    Product[]
+  orders      Order[]
+  files       File[]
+  invites     Invite[]
+
+  @@map("tenants")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phone     String?
+  name      String?
+  clerkId   String?  @unique // Clerk user ID
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  memberships Membership[]
+  invites     Invite[]      @relation("InvitedBy")
+  invitedMemberships Membership[] @relation("InvitedBy")
+
+  @@map("users")
+}
+
+model Membership {
+  id         String           @id @default(cuid())
+  tenantId   String
+  userId     String
+  role       UserRole         @default(VIEWER)
+  status     MembershipStatus @default(PENDING)
+  invitedBy  String?
+  invitedAt  DateTime?
+  acceptedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Relations
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviter    User?            @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, status])
+  @@map("memberships")
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  role      UserRole @default(VIEWER)
+  invitedBy String
+  token     String   @unique
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inviter   User     @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  @@index([tenantId, email])
+  @@index([token])
+  @@map("invites")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String   @default("USD")
+  stock       Int      @default(0)
+  status      String   @default("active") // active, draft, archived
+  seoJson     Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productImages ProductImage[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  fileId    String  // Reference to File table
+  alt       String?
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  file    File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([productId, order])
+  @@map("product_images")
+}
+
+model File {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String  // S3/R2 object key
+  filename  String
+  mimeType  String
+  size      Int
+  uploadedBy String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productImages ProductImage[]
+
+  @@index([tenantId, createdAt])
+  @@index([key])
+  @@map("files")
+}
+
+model Order {
+  id           String   @id @default(cuid())
+  tenantId     String
+  status       String   @default("pending") // pending, paid, shipped, delivered, cancelled
+  totalsJson   Json     @default("{}")
+  customerJson Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@map("orders")
+}
