@@ -55,7 +55,7 @@ export default function AdminProductsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
-  const [addingToCart, setAddingToCart] = useState<string | null>(null)
+
 
   // Get tenant slug on mount
   useEffect(() => {
@@ -278,35 +278,7 @@ export default function AdminProductsPage() {
     }
   }
 
-  async function addToCart(productId: string) {
-    if (!isSignedIn || !tenantSlug) return
-    
-    setAddingToCart(productId)
-    try {
-      const res = await fetch('/api/v1/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant-slug': tenantSlug
-        },
-        body: JSON.stringify({
-          productId,
-          quantity: 1
-        })
-      })
-      
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error?.error || 'Failed to add to cart')
-      }
-      
-      alert('Added to cart!')
-    } catch (e: any) {
-      alert(e.message)
-    } finally {
-      setAddingToCart(null)
-    }
-  }
+
 
   if (!isLoaded) {
     return <div className="p-6">Loading...</div>
@@ -344,7 +316,12 @@ export default function AdminProductsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">Products - {tenantSlug}</h1>
-        <Button onClick={() => setOpen(true)}>New Product</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.location.href = '/admin/settings'}>
+            Settings
+          </Button>
+          <Button onClick={() => setOpen(true)}>New Product</Button>
+        </div>
       </div>
 
       {loading ? (
@@ -386,17 +363,17 @@ export default function AdminProductsPage() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        onClick={() => addToCart(p.id)}
-                        disabled={addingToCart === p.id}
-                      >
-                        {addingToCart === p.id ? 'Adding...' : 'Add to Cart'}
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="outline"
                         onClick={() => window.location.href = `/admin/products/${p.id}/options`}
                       >
                         Options
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.location.href = `/product/${p.id}`}
+                      >
+                        View
                       </Button>
                     </div>
                   </td>

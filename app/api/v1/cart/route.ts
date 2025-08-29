@@ -285,14 +285,14 @@ export async function POST(request: NextRequest) {
     // Add or update cart item
     const cartItem = await prismaRW.cartItem.upsert({
       where: {
-        cartId_productId_productVariantId: {
+        cartId_productId: {
           cartId: cart.id,
-          productId: validatedData.productId,
-          productVariantId: validatedData.productVariantId || null
+          productId: validatedData.productId
         }
       },
       update: {
-        quantity: validatedData.quantity
+        quantity: validatedData.quantity,
+        productVariantId: validatedData.productVariantId || null
       },
       create: {
         cartId: cart.id,
