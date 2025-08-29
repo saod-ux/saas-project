@@ -273,6 +273,8 @@ export default function StorefrontPage() {
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             console.log('Image failed to load:', `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${product.image}`);
+                            console.log('R2 URL:', process.env.NEXT_PUBLIC_R2_PUBLIC_URL);
+                            console.log('Image key:', product.image);
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.nextElementSibling!.style.display = 'flex';
                           }}
@@ -294,6 +296,13 @@ export default function StorefrontPage() {
                       <h3 className="font-semibold text-gray-900 mb-3 text-lg line-clamp-2">
                         {product.title}
                       </h3>
+                      
+                      {/* Debug info - remove this later */}
+                      {product.image && (
+                        <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded">
+                          <div>Image URL: {process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/{product.image}</div>
+                        </div>
+                      )}
                       
                       {product.description && (
                         <p className="text-sm text-gray-600 mb-4 line-clamp-2">
