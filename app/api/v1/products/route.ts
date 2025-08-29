@@ -11,7 +11,7 @@ enum UserRole {
   VIEWER = 'VIEWER'
 }
 
-// GET /api/v1/products - List products (requires VIEWER role)
+// GET /api/v1/products - List products (public for storefront, requires VIEWER role for admin)
 export async function GET(request: NextRequest) {
   try {
     const tenantSlug = request.headers.get('x-tenant-slug')
@@ -31,57 +31,52 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    // Get user and check membership
+    // Check if this is an admin request (has authentication)
     const { auth } = await import('@clerk/nextjs/server')
     const clerkAuth = await auth()
     
-    if (!clerkAuth.userId) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-    
-    const user = await prismaRO.user.findFirst({
-      where: { clerkId: clerkAuth.userId }
-    })
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 401 }
-      )
-    }
-    
-    const membership = await prismaRO.membership.findFirst({
-      where: {
-        userId: user.id,
-        tenantId: tenant.id,
-        status: 'ACTIVE'
+    let isAdminRequest = false
+    if (clerkAuth.userId) {
+      const user = await prismaRO.user.findFirst({
+        where: { clerkId: clerkAuth.userId }
+      })
+      
+      if (user) {
+        const membership = await prismaRO.membership.findFirst({
+          where: {
+            userId: user.id,
+            tenantId: tenant.id,
+            status: 'ACTIVE'
+          }
+        })
+        
+        if (membership) {
+          isAdminRequest = true
+        }
       }
-    })
+    }
     
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'Active membership required' },
-        { status: 403 }
-      )
+    // For public storefront, only show active products
+    // For admin, show all products
+    const where: any = {
+      tenantId: tenant.id
+    }
+    
+    if (!isAdminRequest) {
+      where.status = 'active'
     }
     
     const { searchParams } = new URL(request.url)
     const query = productQuerySchema.parse(Object.fromEntries(searchParams))
     
     // Build where clause with tenant filter
-    const where: any = {
-      tenantId: tenant.id
-    }
     if (query.q) {
       where.OR = [
         { title: { contains: query.q, mode: 'insensitive' } },
         { description: { contains: query.q, mode: 'insensitive' } },
       ]
     }
-    if (query.status) {
+    if (query.status && isAdminRequest) {
       where.status = query.status
     }
     
