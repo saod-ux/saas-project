@@ -57,6 +57,17 @@ model Tenant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Payment Gateway Settings
+  myfatoorahApiKey String?
+  myfatoorahSecretKey String?
+  myfatoorahIsTest Boolean @default(true)
+  knetMerchantId String?
+  knetApiKey String?
+  knetIsTest Boolean @default(true)
+  stripePublishableKey String?
+  stripeSecretKey String?
+  stripeIsTest Boolean @default(true)
+
   // Relations
   memberships Membership[]
   products    Product[]

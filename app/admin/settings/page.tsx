@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Instagram, Facebook, Twitter, MessageCircle, Music, Globe, Palette, Store } from 'lucide-react'
+import { Instagram, Facebook, Twitter, MessageCircle, Music, Globe, Palette, Store, CreditCard } from 'lucide-react'
+import PaymentSettings from './payment-settings'
 
 interface TenantSettings {
   storeName: string
@@ -212,6 +213,10 @@ export default function SettingsPage() {
               <TabsTrigger value="categories" className="flex items-center gap-2">
                 <Store className="h-4 w-4" />
                 Categories
+              </TabsTrigger>
+              <TabsTrigger value="payment" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Payment
               </TabsTrigger>
             </TabsList>
 
@@ -457,6 +462,11 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Payment Settings */}
+            <TabsContent value="payment" className="space-y-6">
+              <PaymentSettings />
             </TabsContent>
           </Tabs>
 

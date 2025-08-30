@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { resolveTenant, getTenantSettings, updateTenantSettings } from '@/lib/tenant'
 import { withTenant } from '@/lib/db'
 import { updateSettingsSchema } from '@/lib/validations'
+import { prismaRW } from '@/lib/db'
+import { z } from 'zod'
+
+// Payment settings schema
+const paymentSettingsSchema = z.object({
+  myfatoorahApiKey: z.string().optional(),
+  myfatoorahSecretKey: z.string().optional(),
+  myfatoorahIsTest: z.boolean().optional(),
+  knetMerchantId: z.string().optional(),
+  knetApiKey: z.string().optional(),
+  knetIsTest: z.boolean().optional(),
+  stripePublishableKey: z.string().optional(),
+  stripeSecretKey: z.string().optional(),
+  stripeIsTest: z.boolean().optional(),
+})
 
 // GET /api/v1/settings - Get tenant settings
 export async function GET(request: NextRequest) {
@@ -39,11 +54,31 @@ export async function PATCH(request: NextRequest) {
     if (!tenant) {
       return NextResponse.json(
         { error: 'Tenant not found' },
-        { status: 404 }
+        { status: 400 }
       )
     }
     
     const body = await request.json()
+    
+    // Check if this is a payment settings update
+    if (paymentSettingsSchema.safeParse(body).success) {
+      const paymentData = paymentSettingsSchema.parse(body)
+      
+      // Update tenant payment settings directly
+      await prismaRW.tenant.update({
+        where: { id: tenant.id },
+        data: paymentData
+      })
+      
+      // Return updated tenant data
+      const updatedTenant = await prismaRW.tenant.findUnique({
+        where: { id: tenant.id }
+      })
+      
+      return NextResponse.json({ data: updatedTenant })
+    }
+    
+    // Handle regular settings update
     const validatedData = updateSettingsSchema.parse(body)
     
     // Get current settings and merge with new data

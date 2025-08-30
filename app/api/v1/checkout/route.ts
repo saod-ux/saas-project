@@ -148,20 +148,52 @@ export async function POST(request: NextRequest) {
         message: 'Payment on delivery'
       }
     } else if (validatedData.paymentMethod === 'myfatoorah') {
-      // MyFatoorah integration (stub for now)
-      paymentData = {
-        method: 'myfatoorah',
-        status: 'pending',
-        paymentUrl: `https://myfatoorah.com/pay/${order.id}`, // Stub URL
-        message: 'Redirecting to MyFatoorah...'
+      // MyFatoorah integration using tenant credentials
+      if (!tenant.myfatoorahApiKey || !tenant.myfatoorahSecretKey) {
+        return NextResponse.json(
+          { error: 'MyFatoorah not configured for this store' },
+          { status: 400 }
+        )
+      }
+      
+      try {
+        const paymentUrl = await createMyFatoorahPayment(order, tenant)
+        paymentData = {
+          method: 'myfatoorah',
+          status: 'pending',
+          paymentUrl,
+          message: 'Redirecting to MyFatoorah...'
+        }
+      } catch (error) {
+        console.error('MyFatoorah payment creation failed:', error)
+        return NextResponse.json(
+          { error: 'Failed to create MyFatoorah payment' },
+          { status: 500 }
+        )
       }
     } else if (validatedData.paymentMethod === 'knet') {
-      // KNET integration (stub for now)
-      paymentData = {
-        method: 'knet',
-        status: 'pending',
-        paymentUrl: `https://knet.com/pay/${order.id}`, // Stub URL
-        message: 'Redirecting to KNET...'
+      // KNET integration using tenant credentials
+      if (!tenant.knetMerchantId || !tenant.knetApiKey) {
+        return NextResponse.json(
+          { error: 'KNET not configured for this store' },
+          { status: 400 }
+        )
+      }
+      
+      try {
+        const paymentUrl = await createKNETPayment(order, tenant)
+        paymentData = {
+          method: 'knet',
+          status: 'pending',
+          paymentUrl,
+          message: 'Redirecting to KNET...'
+        }
+      } catch (error) {
+        console.error('KNET payment creation failed:', error)
+        return NextResponse.json(
+          { error: 'Failed to create KNET payment' },
+          { status: 500 }
+        )
       }
     }
 
@@ -209,4 +241,67 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Create MyFatoorah payment using tenant credentials
+async function createMyFatoorahPayment(order: any, tenant: any) {
+  const baseUrl = tenant.myfatoorahIsTest 
+    ? 'https://apitest.myfatoorah.com' 
+    : 'https://api.myfatoorah.com'
+  
+  const response = await fetch(`${baseUrl}/v2/ExecutePayment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${tenant.myfatoorahApiKey}`
+    },
+    body: JSON.stringify({
+      InvoiceAmount: order.totals.total,
+      CurrencyIso: 'KWD',
+      CustomerName: order.customerInfo.name,
+      CustomerEmail: order.customerInfo.email,
+      CustomerMobile: order.customerInfo.phone,
+      CustomerReference: order.id,
+      CustomerCivilId: '',
+      UserDefinedField: order.id,
+      CallBackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/webhooks/myfatoorah`,
+      ErrorUrl: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/error`,
+      Language: 'en',
+      ExpiryDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      DisplayCurrencyIso: 'KWD',
+      InvoiceItems: order.items.map((item: any) => ({
+        ItemName: item.productTitle,
+        Quantity: item.quantity,
+        UnitPrice: item.unitPrice,
+        Weight: 0
+      }))
+    })
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`MyFatoorah API error: ${error}`)
+  }
+
+  const result = await response.json()
+  
+  if (result.IsSuccess) {
+    return result.Data.PaymentURL
+  } else {
+    throw new Error(result.ErrorMessage || 'MyFatoorah payment creation failed')
+  }
+}
+
+// Create KNET payment using tenant credentials
+async function createKNETPayment(order: any, tenant: any) {
+  // KNET integration would go here
+  // For now, return a placeholder URL
+  // In production, implement actual KNET API integration
+  
+  const baseUrl = tenant.knetIsTest 
+    ? 'https://test.knet.com.kw' 
+    : 'https://knet.com.kw'
+  
+  // This is a placeholder - implement actual KNET integration
+  return `${baseUrl}/payment?merchant=${tenant.knetMerchantId}&order=${order.id}&amount=${order.totals.total}`
 }
