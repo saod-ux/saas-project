@@ -33,6 +33,16 @@ interface TenantSettings {
     phone?: string
     address?: string
   }
+  // Payment settings (these come from the tenant model directly)
+  myfatoorahApiKey?: string
+  myfatoorahSecretKey?: string
+  myfatoorahIsTest?: boolean
+  knetMerchantId?: string
+  knetApiKey?: string
+  knetIsTest?: boolean
+  stripePublishableKey?: string
+  stripeSecretKey?: string
+  stripeIsTest?: boolean
 }
 
 // Extract tenant slug from hostname
@@ -58,7 +68,17 @@ export default function SettingsPage() {
     socialLinks: {},
     branding: {},
     categories: [],
-    contactInfo: {}
+    contactInfo: {},
+    // Initialize payment settings with defaults
+    myfatoorahApiKey: '',
+    myfatoorahSecretKey: '',
+    myfatoorahIsTest: true,
+    knetMerchantId: '',
+    knetApiKey: '',
+    knetIsTest: true,
+    stripePublishableKey: '',
+    stripeSecretKey: '',
+    stripeIsTest: true
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -90,7 +110,26 @@ export default function SettingsPage() {
       })
       const json = await res.json()
       if (res.ok) {
-        setSettings(json.data)
+        // Merge the data with our default structure
+        const tenantData = json.data
+        setSettings({
+          storeName: tenantData.storeName || tenantSlug.toUpperCase(),
+          description: tenantData.description || '',
+          socialLinks: tenantData.socialLinks || {},
+          branding: tenantData.branding || {},
+          categories: tenantData.categories || [],
+          contactInfo: tenantData.contactInfo || {},
+          // Payment settings from tenant model
+          myfatoorahApiKey: tenantData.myfatoorahApiKey || '',
+          myfatoorahSecretKey: tenantData.myfatoorahSecretKey || '',
+          myfatoorahIsTest: tenantData.myfatoorahIsTest ?? true,
+          knetMerchantId: tenantData.knetMerchantId || '',
+          knetApiKey: tenantData.knetApiKey || '',
+          knetIsTest: tenantData.knetIsTest ?? true,
+          stripePublishableKey: tenantData.stripePublishableKey || '',
+          stripeSecretKey: tenantData.stripeSecretKey || '',
+          stripeIsTest: tenantData.stripeIsTest ?? true
+        })
       } else {
         // Initialize with default settings if none exist
         setSettings({
@@ -99,7 +138,17 @@ export default function SettingsPage() {
           socialLinks: {},
           branding: {},
           categories: [],
-          contactInfo: {}
+          contactInfo: {},
+          // Payment settings defaults
+          myfatoorahApiKey: '',
+          myfatoorahSecretKey: '',
+          myfatoorahIsTest: true,
+          knetMerchantId: '',
+          knetApiKey: '',
+          knetIsTest: true,
+          stripePublishableKey: '',
+          stripeSecretKey: '',
+          stripeIsTest: true
         })
       }
     } catch (e: any) {
@@ -197,7 +246,7 @@ export default function SettingsPage() {
         ) : (
           <>
             <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <Store className="h-4 w-4" />
                 General
@@ -256,7 +305,7 @@ export default function SettingsPage() {
                     <Input
                       id="email"
                       type="email"
-                      value={settings.contactInfo.email || ''}
+                      value={settings.contactInfo?.email || ''}
                       onChange={(e) => updateSettings('contactInfo.email', e.target.value)}
                       placeholder="contact@yourstore.com"
                     />
@@ -266,7 +315,7 @@ export default function SettingsPage() {
                     <Label htmlFor="phone">Contact Phone</Label>
                     <Input
                       id="phone"
-                      value={settings.contactInfo.phone || ''}
+                      value={settings.contactInfo?.phone || ''}
                       onChange={(e) => updateSettings('contactInfo.phone', e.target.value)}
                       placeholder="+1 (555) 123-4567"
                     />
@@ -276,7 +325,7 @@ export default function SettingsPage() {
                     <Label htmlFor="address">Business Address</Label>
                     <Textarea
                       id="address"
-                      value={settings.contactInfo.address || ''}
+                      value={settings.contactInfo?.address || ''}
                       onChange={(e) => updateSettings('contactInfo.address', e.target.value)}
                       placeholder="Your business address..."
                       rows={2}
@@ -302,7 +351,7 @@ export default function SettingsPage() {
                       <Label htmlFor="instagram">Instagram</Label>
                       <Input
                         id="instagram"
-                        value={settings.socialLinks.instagram || ''}
+                        value={settings.socialLinks?.instagram || ''}
                         onChange={(e) => updateSettings('socialLinks.instagram', e.target.value)}
                         placeholder="https://instagram.com/yourstore"
                       />
@@ -315,7 +364,7 @@ export default function SettingsPage() {
                       <Label htmlFor="facebook">Facebook</Label>
                       <Input
                         id="facebook"
-                        value={settings.socialLinks.facebook || ''}
+                        value={settings.socialLinks?.facebook || ''}
                         onChange={(e) => updateSettings('socialLinks.facebook', e.target.value)}
                         placeholder="https://facebook.com/yourstore"
                       />
@@ -328,7 +377,7 @@ export default function SettingsPage() {
                       <Label htmlFor="twitter">Twitter</Label>
                       <Input
                         id="twitter"
-                        value={settings.socialLinks.twitter || ''}
+                        value={settings.socialLinks?.twitter || ''}
                         onChange={(e) => updateSettings('socialLinks.twitter', e.target.value)}
                         placeholder="https://twitter.com/yourstore"
                       />
@@ -341,7 +390,7 @@ export default function SettingsPage() {
                       <Label htmlFor="whatsapp">WhatsApp</Label>
                       <Input
                         id="whatsapp"
-                        value={settings.socialLinks.whatsapp || ''}
+                        value={settings.socialLinks?.whatsapp || ''}
                         onChange={(e) => updateSettings('socialLinks.whatsapp', e.target.value)}
                         placeholder="https://wa.me/1234567890"
                       />
@@ -354,7 +403,7 @@ export default function SettingsPage() {
                       <Label htmlFor="tiktok">TikTok</Label>
                       <Input
                         id="tiktok"
-                        value={settings.socialLinks.tiktok || ''}
+                        value={settings.socialLinks?.tiktok || ''}
                         onChange={(e) => updateSettings('socialLinks.tiktok', e.target.value)}
                         placeholder="https://tiktok.com/@yourstore"
                       />
@@ -367,7 +416,7 @@ export default function SettingsPage() {
                       <Label htmlFor="website">Website</Label>
                       <Input
                         id="website"
-                        value={settings.socialLinks.website || ''}
+                        value={settings.socialLinks?.website || ''}
                         onChange={(e) => updateSettings('socialLinks.website', e.target.value)}
                         placeholder="https://yourstore.com"
                       />
@@ -392,13 +441,13 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                       <Input
                         id="primaryColor"
-                        value={settings.branding.primaryColor || ''}
+                        value={settings.branding?.primaryColor || ''}
                         onChange={(e) => updateSettings('branding.primaryColor', e.target.value)}
                         placeholder="#3B82F6"
                       />
                       <div
                         className="w-10 h-10 rounded border"
-                        style={{ backgroundColor: settings.branding.primaryColor || '#3B82F6' }}
+                        style={{ backgroundColor: settings.branding?.primaryColor || '#3B82F6' }}
                       />
                     </div>
                   </div>
@@ -407,7 +456,7 @@ export default function SettingsPage() {
                     <Label htmlFor="logo">Logo URL</Label>
                     <Input
                       id="logo"
-                      value={settings.branding.logo || ''}
+                                              value={settings.branding?.logo || ''}
                       onChange={(e) => updateSettings('branding.logo', e.target.value)}
                       placeholder="https://example.com/logo.png"
                     />
@@ -417,7 +466,7 @@ export default function SettingsPage() {
                     <Label htmlFor="favicon">Favicon URL</Label>
                     <Input
                       id="favicon"
-                      value={settings.branding.favicon || ''}
+                                              value={settings.branding?.favicon || ''}
                       onChange={(e) => updateSettings('branding.favicon', e.target.value)}
                       placeholder="https://example.com/favicon.ico"
                     />
@@ -443,7 +492,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    {settings.categories.map((category, index) => (
+                    {settings.categories?.map((category, index) => (
                       <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                         <span className="flex-1">{category}</span>
                         <Button
@@ -456,7 +505,7 @@ export default function SettingsPage() {
                       </div>
                     ))}
                     
-                    {settings.categories.length === 0 && (
+                    {(!settings.categories || settings.categories.length === 0) && (
                       <p className="text-gray-500 text-sm">No categories added yet.</p>
                     )}
                   </div>
