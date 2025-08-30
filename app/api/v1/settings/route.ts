@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveTenant, getTenantSettings, updateTenantSettings } from '@/lib/tenant'
 import { withTenant } from '@/lib/db'
-import { updateSettingsSchema } from '@/lib/validations'
 import { prismaRW } from '@/lib/db'
+import { 
+  tenantSettingsSchema, 
+  upgradeSettings, 
+  defaultSettings,
+  type TenantSettings 
+} from '@/lib/settings'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-
-// Payment settings schema
-const paymentSettingsSchema = z.object({
-  myfatoorahApiKey: z.string().optional(),
-  myfatoorahSecretKey: z.string().optional(),
-  myfatoorahIsTest: z.boolean().optional(),
-  knetMerchantId: z.string().optional(),
-  knetApiKey: z.string().optional(),
-  knetIsTest: z.boolean().optional(),
-  stripePublishableKey: z.string().optional(),
-  stripeSecretKey: z.string().optional(),
-  stripeIsTest: z.boolean().optional(),
-})
 
 // GET /api/v1/settings - Get tenant settings
 export async function GET(request: NextRequest) {
@@ -32,9 +25,56 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    const settings = await withTenant(tenant.id, async () => getTenantSettings(tenant.id))
+    // Get settings from both settingsJson and direct fields
+    const settingsJson = await withTenant(tenant.id, async () => getTenantSettings(tenant.id))
     
-    return NextResponse.json({ data: settings })
+    // Get tenant with all fields
+    const tenantWithFields = await prismaRW.tenant.findUnique({
+      where: { id: tenant.id }
+    })
+    
+    if (!tenantWithFields) {
+      return NextResponse.json(
+        { error: 'Tenant not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Merge settingsJson with direct fields
+    const mergedSettings = {
+      ...settingsJson,
+      // Direct fields from tenant model
+      primary: tenantWithFields.primary,
+      accent: tenantWithFields.accent,
+      bg: tenantWithFields.bg,
+      card: tenantWithFields.card,
+      text: tenantWithFields.text,
+      logoUrl: tenantWithFields.logoUrl,
+      showHero: tenantWithFields.showHero,
+      heroTitle: tenantWithFields.heroTitle,
+      heroSubtitle: tenantWithFields.heroSubtitle,
+      heroCtaLabel: tenantWithFields.heroCtaLabel,
+      heroCtaHref: tenantWithFields.heroCtaHref,
+      heroImageUrl: tenantWithFields.heroImageUrl,
+      direction: tenantWithFields.direction,
+      locale: tenantWithFields.locale,
+      settingsVersion: tenantWithFields.settingsVersion,
+      // Payment fields
+      myfatoorahApiKey: tenantWithFields.myfatoorahApiKey,
+      myfatoorahSecretKey: tenantWithFields.myfatoorahSecretKey,
+      myfatoorahIsTest: tenantWithFields.myfatoorahIsTest,
+      knetMerchantId: tenantWithFields.knetMerchantId,
+      knetApiKey: tenantWithFields.knetApiKey,
+      knetIsTest: tenantWithFields.knetIsTest,
+      stripePublishableKey: tenantWithFields.stripePublishableKey,
+      stripeSecretKey: tenantWithFields.stripeSecretKey,
+      stripeIsTest: tenantWithFields.stripeIsTest,
+    }
+    
+    // Upgrade and validate settings
+    const upgradedSettings = upgradeSettings(mergedSettings)
+    
+    return NextResponse.json({ data: upgradedSettings })
   } catch (error) {
     console.error('Error fetching settings:', error)
     return NextResponse.json(
@@ -60,38 +100,139 @@ export async function PATCH(request: NextRequest) {
     
     const body = await request.json()
     
-    // Check if this is a payment settings update
-    if (paymentSettingsSchema.safeParse(body).success) {
-      const paymentData = paymentSettingsSchema.parse(body)
-      
-      // Update tenant payment settings directly
-      await prismaRW.tenant.update({
-        where: { id: tenant.id },
-        data: paymentData
+    // Validate the incoming data
+    const validatedData = tenantSettingsSchema.partial().parse(body)
+    
+    // Prepare update data for direct fields
+    const directFields: any = {}
+    
+    // Storefront theme fields
+    if (validatedData.storefront?.theme) {
+      Object.assign(directFields, {
+        primary: validatedData.storefront.theme.primary,
+        accent: validatedData.storefront.theme.accent,
+        bg: validatedData.storefront.theme.bg,
+        card: validatedData.storefront.theme.card,
+        text: validatedData.storefront.theme.text,
+        logoUrl: validatedData.storefront.theme.logoUrl,
       })
-      
-      // Return updated tenant data
-      const updatedTenant = await prismaRW.tenant.findUnique({
-        where: { id: tenant.id }
-      })
-      
-      return NextResponse.json({ data: updatedTenant })
     }
     
-    // Handle regular settings update
-    const validatedData = updateSettingsSchema.parse(body)
+    // Hero fields
+    if (validatedData.storefront?.hero) {
+      Object.assign(directFields, {
+        showHero: validatedData.storefront.hero.showHero,
+        heroTitle: validatedData.storefront.hero.heroTitle,
+        heroSubtitle: validatedData.storefront.hero.heroSubtitle,
+        heroCtaLabel: validatedData.storefront.hero.heroCtaLabel,
+        heroCtaHref: validatedData.storefront.hero.heroCtaHref,
+        heroImageUrl: validatedData.storefront.hero.heroImageUrl,
+      })
+    }
     
-    // Get current settings and merge with new data
-    const currentSettings = await getTenantSettings(tenant.id)
-    const updatedSettings = { ...currentSettings, ...validatedData }
+    // Localization fields
+    if (validatedData.storefront?.localization) {
+      Object.assign(directFields, {
+        direction: validatedData.storefront.localization.direction,
+        locale: validatedData.storefront.localization.locale,
+      })
+    }
     
-    await withTenant(tenant.id, async () => updateTenantSettings(tenant.id, updatedSettings))
+    // Payment fields
+    if (validatedData.payment) {
+      Object.assign(directFields, {
+        myfatoorahApiKey: validatedData.payment.myfatoorahApiKey,
+        myfatoorahSecretKey: validatedData.payment.myfatoorahSecretKey,
+        myfatoorahIsTest: validatedData.payment.myfatoorahIsTest,
+        knetMerchantId: validatedData.payment.knetMerchantId,
+        knetApiKey: validatedData.payment.knetApiKey,
+        knetIsTest: validatedData.payment.knetIsTest,
+        stripePublishableKey: validatedData.payment.stripePublishableKey,
+        stripeSecretKey: validatedData.payment.stripeSecretKey,
+        stripeIsTest: validatedData.payment.stripeIsTest,
+      })
+    }
     
-    return NextResponse.json({ data: updatedSettings })
+    // Version
+    if (validatedData.settingsVersion) {
+      directFields.settingsVersion = validatedData.settingsVersion
+    }
+    
+    // Update direct fields in tenant table
+    if (Object.keys(directFields).length > 0) {
+      await prismaRW.tenant.update({
+        where: { id: tenant.id },
+        data: directFields
+      })
+    }
+    
+    // Update settingsJson for other fields
+    const currentSettingsJson = await getTenantSettings(tenant.id)
+    const updatedSettingsJson = { ...currentSettingsJson, ...validatedData }
+    
+    // Remove direct fields from settingsJson to avoid duplication
+    const fieldsToRemove = [
+      'primary', 'accent', 'bg', 'card', 'text', 'logoUrl',
+      'showHero', 'heroTitle', 'heroSubtitle', 'heroCtaLabel', 'heroCtaHref', 'heroImageUrl',
+      'direction', 'locale', 'settingsVersion',
+      'myfatoorahApiKey', 'myfatoorahSecretKey', 'myfatoorahIsTest',
+      'knetMerchantId', 'knetApiKey', 'knetIsTest',
+      'stripePublishableKey', 'stripeSecretKey', 'stripeIsTest',
+    ]
+    
+    fieldsToRemove.forEach(field => {
+      delete updatedSettingsJson[field]
+    })
+    
+    await withTenant(tenant.id, async () => updateTenantSettings(tenant.id, updatedSettingsJson))
+    
+    // Revalidate storefront pages
+    revalidatePath('/')
+    revalidatePath('/product/[id]')
+    
+    // Return updated settings
+    const updatedTenant = await prismaRW.tenant.findUnique({
+      where: { id: tenant.id }
+    })
+    
+    const mergedSettings = {
+      ...updatedSettingsJson,
+      primary: updatedTenant?.primary,
+      accent: updatedTenant?.accent,
+      bg: updatedTenant?.bg,
+      card: updatedTenant?.card,
+      text: updatedTenant?.text,
+      logoUrl: updatedTenant?.logoUrl,
+      showHero: updatedTenant?.showHero,
+      heroTitle: updatedTenant?.heroTitle,
+      heroSubtitle: updatedTenant?.heroSubtitle,
+      heroCtaLabel: updatedTenant?.heroCtaLabel,
+      heroCtaHref: updatedTenant?.heroCtaHref,
+      heroImageUrl: updatedTenant?.heroImageUrl,
+      direction: updatedTenant?.direction,
+      locale: updatedTenant?.locale,
+      settingsVersion: updatedTenant?.settingsVersion,
+      myfatoorahApiKey: updatedTenant?.myfatoorahApiKey,
+      myfatoorahSecretKey: updatedTenant?.myfatoorahSecretKey,
+      myfatoorahIsTest: updatedTenant?.myfatoorahIsTest,
+      knetMerchantId: updatedTenant?.knetMerchantId,
+      knetApiKey: updatedTenant?.knetApiKey,
+      knetIsTest: updatedTenant?.knetIsTest,
+      stripePublishableKey: updatedTenant?.stripePublishableKey,
+      stripeSecretKey: updatedTenant?.stripeSecretKey,
+      stripeIsTest: updatedTenant?.stripeIsTest,
+    }
+    
+    const finalSettings = upgradeSettings(mergedSettings)
+    
+    return NextResponse.json({ data: finalSettings })
   } catch (error) {
-    if (error instanceof Error && error.message.includes('validation')) {
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.message },
+        { 
+          error: 'Validation error', 
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        },
         { status: 400 }
       )
     }

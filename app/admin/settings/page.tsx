@@ -15,7 +15,7 @@ import StorefrontSettings from './storefront-settings'
 interface TenantSettings {
   storeName: string
   description: string
-  socialLinks: {
+  social: {
     instagram?: string
     facebook?: string
     twitter?: string
@@ -81,7 +81,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<TenantSettings>({
     storeName: '',
     description: '',
-    socialLinks: {},
+    social: {},
     branding: {},
     categories: [],
     contactInfo: {},
@@ -129,8 +129,6 @@ export default function SettingsPage() {
   async function loadSettings() {
     if (!tenantSlug) return
     
-    setLoading(true)
-    setError(null)
     try {
       const res = await fetch('/api/v1/settings', {
         headers: {
@@ -144,9 +142,9 @@ export default function SettingsPage() {
         setSettings({
           storeName: tenantData.storeName || tenantSlug.toUpperCase(),
           description: tenantData.description || '',
-          socialLinks: tenantData.socialLinks || {},
+          social: tenantData.social || {},
           branding: tenantData.branding || {},
-          categories: tenantData.categories || [],
+          categories: tenantData.categories?.items || [],
           contactInfo: tenantData.contactInfo || {},
           // Payment settings from tenant model
           myfatoorahApiKey: tenantData.myfatoorahApiKey || '',
@@ -179,7 +177,7 @@ export default function SettingsPage() {
         setSettings({
           storeName: tenantSlug.toUpperCase(),
           description: '',
-          socialLinks: {},
+          social: {},
           branding: {},
           categories: [],
           contactInfo: {},
@@ -209,22 +207,19 @@ export default function SettingsPage() {
         })
       }
     } catch (e: any) {
+      console.error('Failed to load settings:', e.message)
       setError(e.message)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    if (isSignedIn && tenantSlug) {
-      loadSettings()
-    }
-  }, [isSignedIn, tenantSlug])
-
   async function saveSettings() {
-    if (!isSignedIn || !tenantSlug) return
+    if (!tenantSlug) return
     
     setSaving(true)
+    setError(null)
+    
     try {
       const res = await fetch('/api/v1/settings', {
         method: 'PATCH',
@@ -235,14 +230,16 @@ export default function SettingsPage() {
         body: JSON.stringify(settings)
       })
       
+      const json = await res.json()
+      
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error?.error || 'Failed to save settings')
+        throw new Error(json?.error || 'Failed to save settings')
       }
       
-      alert('Settings saved successfully!')
+      // Reload settings to get the updated data
+      await loadSettings()
     } catch (e: any) {
-      alert(e.message)
+      setError(e.message)
     } finally {
       setSaving(false)
     }
@@ -252,7 +249,7 @@ export default function SettingsPage() {
     setSettings(prev => {
       const newSettings = { ...prev }
       const keys = path.split('.')
-      let current: any = newSettings
+      let current = newSettings
       
       for (let i = 0; i < keys.length - 1; i++) {
         current = current[keys[i]]
@@ -274,6 +271,12 @@ export default function SettingsPage() {
     updateSettings('categories', settings.categories.filter((_, i) => i !== index))
   }
 
+  useEffect(() => {
+    if (tenantSlug) {
+      loadSettings()
+    }
+  }, [tenantSlug])
+
   if (!isLoaded) {
     return <div className="p-6">Loading...</div>
   }
@@ -283,7 +286,7 @@ export default function SettingsPage() {
   }
 
   if (!tenantSlug) {
-    return <div className="p-6">No tenant found. Please access via subdomain like acme.localhost:3002</div>
+    return <div className="p-6">No tenant found. Please access via subdomain like acme.localhost:3000</div>
   }
 
   return (
@@ -412,8 +415,8 @@ export default function SettingsPage() {
                       <Label htmlFor="instagram">Instagram</Label>
                       <Input
                         id="instagram"
-                        value={settings.socialLinks?.instagram || ''}
-                        onChange={(e) => updateSettings('socialLinks.instagram', e.target.value)}
+                        value={settings.social?.instagram || ''}
+                        onChange={(e) => updateSettings('social.instagram', e.target.value)}
                         placeholder="https://instagram.com/yourstore"
                       />
                     </div>
@@ -425,8 +428,8 @@ export default function SettingsPage() {
                       <Label htmlFor="facebook">Facebook</Label>
                       <Input
                         id="facebook"
-                        value={settings.socialLinks?.facebook || ''}
-                        onChange={(e) => updateSettings('socialLinks.facebook', e.target.value)}
+                        value={settings.social?.facebook || ''}
+                        onChange={(e) => updateSettings('social.facebook', e.target.value)}
                         placeholder="https://facebook.com/yourstore"
                       />
                     </div>
@@ -438,8 +441,8 @@ export default function SettingsPage() {
                       <Label htmlFor="twitter">Twitter</Label>
                       <Input
                         id="twitter"
-                        value={settings.socialLinks?.twitter || ''}
-                        onChange={(e) => updateSettings('socialLinks.twitter', e.target.value)}
+                        value={settings.social?.twitter || ''}
+                        onChange={(e) => updateSettings('social.twitter', e.target.value)}
                         placeholder="https://twitter.com/yourstore"
                       />
                     </div>
@@ -451,8 +454,8 @@ export default function SettingsPage() {
                       <Label htmlFor="whatsapp">WhatsApp</Label>
                       <Input
                         id="whatsapp"
-                        value={settings.socialLinks?.whatsapp || ''}
-                        onChange={(e) => updateSettings('socialLinks.whatsapp', e.target.value)}
+                        value={settings.social?.whatsapp || ''}
+                        onChange={(e) => updateSettings('social.whatsapp', e.target.value)}
                         placeholder="https://wa.me/1234567890"
                       />
                     </div>
@@ -464,8 +467,8 @@ export default function SettingsPage() {
                       <Label htmlFor="tiktok">TikTok</Label>
                       <Input
                         id="tiktok"
-                        value={settings.socialLinks?.tiktok || ''}
-                        onChange={(e) => updateSettings('socialLinks.tiktok', e.target.value)}
+                        value={settings.social?.tiktok || ''}
+                        onChange={(e) => updateSettings('social.tiktok', e.target.value)}
                         placeholder="https://tiktok.com/@yourstore"
                       />
                     </div>
@@ -477,8 +480,8 @@ export default function SettingsPage() {
                       <Label htmlFor="website">Website</Label>
                       <Input
                         id="website"
-                        value={settings.socialLinks?.website || ''}
-                        onChange={(e) => updateSettings('socialLinks.website', e.target.value)}
+                        value={settings.social?.website || ''}
+                        onChange={(e) => updateSettings('social.website', e.target.value)}
                         placeholder="https://yourstore.com"
                       />
                     </div>
@@ -517,7 +520,7 @@ export default function SettingsPage() {
                     <Label htmlFor="logo">Logo URL</Label>
                     <Input
                       id="logo"
-                                              value={settings.branding?.logo || ''}
+                      value={settings.branding?.logo || ''}
                       onChange={(e) => updateSettings('branding.logo', e.target.value)}
                       placeholder="https://example.com/logo.png"
                     />
@@ -527,7 +530,7 @@ export default function SettingsPage() {
                     <Label htmlFor="favicon">Favicon URL</Label>
                     <Input
                       id="favicon"
-                                              value={settings.branding?.favicon || ''}
+                      value={settings.branding?.favicon || ''}
                       onChange={(e) => updateSettings('branding.favicon', e.target.value)}
                       placeholder="https://example.com/favicon.ico"
                     />

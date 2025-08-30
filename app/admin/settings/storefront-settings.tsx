@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Palette, Image, Globe, Eye } from 'lucide-react'
+import { Palette, Image, Globe, Eye, Bug } from 'lucide-react'
 
 interface StorefrontSettings {
   // Theme
@@ -42,9 +42,29 @@ interface Props {
 
 export default function StorefrontSettings({ settings, onUpdate, onSave, saving }: Props) {
   const [previewMode, setPreviewMode] = useState(false)
+  const [debugMode, setDebugMode] = useState(false)
 
   const updateSetting = (key: keyof StorefrontSettings, value: any) => {
     onUpdate({ [key]: value })
+  }
+
+  const revalidateStorefront = async () => {
+    try {
+      const response = await fetch('/api/v1/settings/revalidate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        alert('Storefront revalidated successfully!')
+      } else {
+        alert('Failed to revalidate storefront')
+      }
+    } catch (error) {
+      alert('Error revalidating storefront')
+    }
   }
 
   return (
@@ -56,15 +76,66 @@ export default function StorefrontSettings({ settings, onUpdate, onSave, saving 
             Customize the appearance and content of your customer-facing storefront
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setPreviewMode(!previewMode)}
-          className="flex items-center gap-2"
-        >
-          <Eye className="h-4 w-4" />
-          {previewMode ? 'Hide Preview' : 'Show Preview'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setDebugMode(!debugMode)}
+            className="flex items-center gap-2"
+          >
+            <Bug className="h-4 w-4" />
+            {debugMode ? 'Hide Debug' : 'Debug'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPreviewMode(!previewMode)}
+            className="flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            {previewMode ? 'Hide Preview' : 'Show Preview'}
+          </Button>
+        </div>
       </div>
+
+      {/* Debug Panel */}
+      {debugMode && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-800">
+              <Bug className="h-4 w-4" />
+              Debug Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <strong>Settings Version:</strong> 1
+              </div>
+              <div>
+                <strong>Last Updated:</strong> {new Date().toLocaleString()}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={revalidateStorefront}
+              >
+                Revalidate Storefront
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  console.log('Current settings:', settings)
+                  alert('Settings logged to console')
+                }}
+              >
+                Log Settings
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="theme" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">

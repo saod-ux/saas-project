@@ -26,7 +26,7 @@ interface Product {
 interface TenantSettings {
   storeName: string
   description: string
-  socialLinks: {
+  social: {
     instagram?: string
     facebook?: string
     twitter?: string
@@ -117,14 +117,14 @@ function StorefrontContent() {
       })
       const json = await res.json()
       if (res.ok) {
-        // Merge with defaults for storefront settings
+        // Use the new settings structure
         const tenantData = json.data
         setSettings({
           storeName: tenantData.storeName || tenantSlug.toUpperCase(),
           description: tenantData.description || '',
-          socialLinks: tenantData.socialLinks || {},
-          categories: tenantData.categories || [],
-          // Storefront theme defaults
+          social: tenantData.social || {},
+          categories: tenantData.categories?.items || [],
+          // Storefront theme settings from direct fields
           primary: tenantData.primary || '#1F2937',
           accent: tenantData.accent || '#111827',
           bg: tenantData.bg || '#FAF7F2',
@@ -216,7 +216,7 @@ function StorefrontContent() {
     return matchesSearch && matchesCategory && product.status === 'active'
   })
 
-  // Get unique categories from products (placeholder)
+  // Get unique categories from settings
   const categories = ['all', ...(settings?.categories || [])]
 
   if (!tenantSlug) {
@@ -378,9 +378,9 @@ function StorefrontContent() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
               <div className="flex space-x-4">
-                {settings.socialLinks?.instagram && (
+                {settings.social?.instagram && (
                   <a
-                    href={settings.socialLinks.instagram}
+                    href={settings.social.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-300 hover:text-white transition-colors"
@@ -388,9 +388,9 @@ function StorefrontContent() {
                     <Instagram className="h-5 w-5" />
                   </a>
                 )}
-                {settings.socialLinks?.facebook && (
+                {settings.social?.facebook && (
                   <a
-                    href={settings.socialLinks.facebook}
+                    href={settings.social.facebook}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-300 hover:text-white transition-colors"
@@ -398,9 +398,9 @@ function StorefrontContent() {
                     <Facebook className="h-5 w-5" />
                   </a>
                 )}
-                {settings.socialLinks?.twitter && (
+                {settings.social?.twitter && (
                   <a
-                    href={settings.socialLinks.twitter}
+                    href={settings.social.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-300 hover:text-white transition-colors"
@@ -408,9 +408,9 @@ function StorefrontContent() {
                     <Twitter className="h-5 w-5" />
                   </a>
                 )}
-                {settings.socialLinks?.whatsapp && (
+                {settings.social?.whatsapp && (
                   <a
-                    href={settings.socialLinks.whatsapp}
+                    href={settings.social.whatsapp}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-300 hover:text-white transition-colors"
@@ -432,9 +432,16 @@ function StorefrontContent() {
 }
 
 export default function StorefrontPage() {
+  const [tenantSlug, setTenantSlug] = useState<string | null>(null)
+
+  useEffect(() => {
+    const slug = extractTenantSlug()
+    setTenantSlug(slug)
+  }, [])
+
   return (
     <CurrencyProvider>
-      <TenantThemeProvider>
+      <TenantThemeProvider tenantSlug={tenantSlug || undefined}>
         <StorefrontContent />
       </TenantThemeProvider>
     </CurrencyProvider>

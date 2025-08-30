@@ -68,6 +68,29 @@ model Tenant {
   stripeSecretKey String?
   stripeIsTest Boolean @default(true)
 
+  // Storefront Theme Settings
+  primary String @default("#1F2937")
+  accent String @default("#111827")
+  bg String @default("#FAF7F2")
+  card String @default("#FFFFFF")
+  text String @default("#1F2937")
+  logoUrl String?
+  
+  // Hero Settings
+  showHero Boolean @default(true)
+  heroTitle String @default("Welcome to Our Store")
+  heroSubtitle String @default("Discover amazing products at great prices")
+  heroCtaLabel String @default("Shop Now")
+  heroCtaHref String @default("#products")
+  heroImageUrl String?
+  
+  // Localization
+  direction String @default("ltr")
+  locale String @default("en-US")
+  
+  // Settings Version
+  settingsVersion Int @default(1)
+
   // Relations
   memberships Membership[]
   products    Product[]
