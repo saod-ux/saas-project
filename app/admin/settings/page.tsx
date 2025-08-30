@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Instagram, Facebook, Twitter, MessageCircle, Music, Globe, Palette, Store, CreditCard } from 'lucide-react'
+import { Instagram, Facebook, Twitter, MessageCircle, Music, Globe, Palette, Store, CreditCard, Monitor } from 'lucide-react'
 import PaymentSettings from './payment-settings'
+import StorefrontSettings from './storefront-settings'
 
 interface TenantSettings {
   storeName: string
@@ -43,6 +44,21 @@ interface TenantSettings {
   stripePublishableKey?: string
   stripeSecretKey?: string
   stripeIsTest?: boolean
+  // Storefront theme settings
+  primary?: string
+  accent?: string
+  bg?: string
+  card?: string
+  text?: string
+  logoUrl?: string
+  showHero?: boolean
+  heroTitle?: string
+  heroSubtitle?: string
+  heroCtaLabel?: string
+  heroCtaHref?: string
+  heroImageUrl?: string
+  direction?: 'ltr' | 'rtl'
+  locale?: 'en-US' | 'ar-KW'
 }
 
 // Extract tenant slug from hostname
@@ -78,7 +94,20 @@ export default function SettingsPage() {
     knetIsTest: true,
     stripePublishableKey: '',
     stripeSecretKey: '',
-    stripeIsTest: true
+    stripeIsTest: true,
+    // Storefront theme defaults
+    primary: '#1F2937',
+    accent: '#111827',
+    bg: '#FAF7F2',
+    card: '#FFFFFF',
+    text: '#1F2937',
+    showHero: true,
+    heroTitle: 'Welcome to Our Store',
+    heroSubtitle: 'Discover amazing products at great prices',
+    heroCtaLabel: 'Shop Now',
+    heroCtaHref: '#products',
+    direction: 'ltr',
+    locale: 'en-US'
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -128,7 +157,22 @@ export default function SettingsPage() {
           knetIsTest: tenantData.knetIsTest ?? true,
           stripePublishableKey: tenantData.stripePublishableKey || '',
           stripeSecretKey: tenantData.stripeSecretKey || '',
-          stripeIsTest: tenantData.stripeIsTest ?? true
+          stripeIsTest: tenantData.stripeIsTest ?? true,
+          // Storefront theme settings
+          primary: tenantData.primary || '#1F2937',
+          accent: tenantData.accent || '#111827',
+          bg: tenantData.bg || '#FAF7F2',
+          card: tenantData.card || '#FFFFFF',
+          text: tenantData.text || '#1F2937',
+          logoUrl: tenantData.logoUrl,
+          showHero: tenantData.showHero ?? true,
+          heroTitle: tenantData.heroTitle || 'Welcome to Our Store',
+          heroSubtitle: tenantData.heroSubtitle || 'Discover amazing products at great prices',
+          heroCtaLabel: tenantData.heroCtaLabel || 'Shop Now',
+          heroCtaHref: tenantData.heroCtaHref || '#products',
+          heroImageUrl: tenantData.heroImageUrl,
+          direction: tenantData.direction || 'ltr',
+          locale: tenantData.locale || 'en-US'
         })
       } else {
         // Initialize with default settings if none exist
@@ -148,7 +192,20 @@ export default function SettingsPage() {
           knetIsTest: true,
           stripePublishableKey: '',
           stripeSecretKey: '',
-          stripeIsTest: true
+          stripeIsTest: true,
+          // Storefront theme defaults
+          primary: '#1F2937',
+          accent: '#111827',
+          bg: '#FAF7F2',
+          card: '#FFFFFF',
+          text: '#1F2937',
+          showHero: true,
+          heroTitle: 'Welcome to Our Store',
+          heroSubtitle: 'Discover amazing products at great prices',
+          heroCtaLabel: 'Shop Now',
+          heroCtaHref: '#products',
+          direction: 'ltr',
+          locale: 'en-US'
         })
       }
     } catch (e: any) {
@@ -246,7 +303,7 @@ export default function SettingsPage() {
         ) : (
           <>
             <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <Store className="h-4 w-4" />
                 General
@@ -266,6 +323,10 @@ export default function SettingsPage() {
               <TabsTrigger value="payment" className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
                 Payment
+              </TabsTrigger>
+              <TabsTrigger value="storefront" className="flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                Storefront
               </TabsTrigger>
             </TabsList>
 
@@ -516,6 +577,35 @@ export default function SettingsPage() {
             {/* Payment Settings */}
             <TabsContent value="payment" className="space-y-6">
               <PaymentSettings />
+            </TabsContent>
+
+            {/* Storefront Settings */}
+            <TabsContent value="storefront" className="space-y-6">
+              <StorefrontSettings
+                settings={{
+                  primary: settings.primary || '#1F2937',
+                  accent: settings.accent || '#111827',
+                  bg: settings.bg || '#FAF7F2',
+                  card: settings.card || '#FFFFFF',
+                  text: settings.text || '#1F2937',
+                  logoUrl: settings.logoUrl,
+                  showHero: settings.showHero ?? true,
+                  heroTitle: settings.heroTitle || 'Welcome to Our Store',
+                  heroSubtitle: settings.heroSubtitle || 'Discover amazing products at great prices',
+                  heroCtaLabel: settings.heroCtaLabel || 'Shop Now',
+                  heroCtaHref: settings.heroCtaHref || '#products',
+                  heroImageUrl: settings.heroImageUrl,
+                  direction: settings.direction || 'ltr',
+                  locale: settings.locale || 'en-US',
+                }}
+                onUpdate={(updates) => {
+                  Object.entries(updates).forEach(([key, value]) => {
+                    updateSettings(key as any, value)
+                  })
+                }}
+                onSave={saveSettings}
+                saving={saving}
+              />
             </TabsContent>
           </Tabs>
 

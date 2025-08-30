@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/nextjs'
+import { TenantThemeProvider } from '@/providers/TenantThemeProvider'
+import { CurrencyProvider } from '@/context/CurrencyContext'
+import StorefrontHeader from '@/components/StorefrontHeader'
+import CategoryChips from '@/components/CategoryChips'
+import HeroSection from '@/components/HeroSection'
+import ProductCard from '@/components/ProductCard'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ShoppingCart, Search, Instagram, Facebook, Twitter, MessageCircle } from 'lucide-react'
+import { Instagram, Facebook, Twitter, MessageCircle } from 'lucide-react'
 
 interface Product {
   id: string
@@ -29,6 +34,21 @@ interface TenantSettings {
     tiktok?: string
   }
   categories: string[]
+  // Storefront theme settings
+  primary: string
+  accent: string
+  bg: string
+  card: string
+  text: string
+  logoUrl?: string
+  showHero: boolean
+  heroTitle: string
+  heroSubtitle: string
+  heroCtaLabel: string
+  heroCtaHref: string
+  heroImageUrl?: string
+  direction: 'ltr' | 'rtl'
+  locale: 'en-US' | 'ar-KW'
 }
 
 // Extract tenant slug from hostname
@@ -45,8 +65,8 @@ function extractTenantSlug(): string | null {
   return null
 }
 
-export default function StorefrontPage() {
-  const { isSignedIn, isLoaded } = useAuth()
+function StorefrontContent() {
+  const { isSignedIn } = useAuth()
   const [tenantSlug, setTenantSlug] = useState<string | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [settings, setSettings] = useState<TenantSettings | null>(null)
@@ -55,6 +75,7 @@ export default function StorefrontPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [cartCount, setCartCount] = useState(0)
+  const [addingToCart, setAddingToCart] = useState<string | null>(null)
 
   // Get tenant slug on mount
   useEffect(() => {
@@ -96,7 +117,29 @@ export default function StorefrontPage() {
       })
       const json = await res.json()
       if (res.ok) {
-        setSettings(json.data)
+        // Merge with defaults for storefront settings
+        const tenantData = json.data
+        setSettings({
+          storeName: tenantData.storeName || tenantSlug.toUpperCase(),
+          description: tenantData.description || '',
+          socialLinks: tenantData.socialLinks || {},
+          categories: tenantData.categories || [],
+          // Storefront theme defaults
+          primary: tenantData.primary || '#1F2937',
+          accent: tenantData.accent || '#111827',
+          bg: tenantData.bg || '#FAF7F2',
+          card: tenantData.card || '#FFFFFF',
+          text: tenantData.text || '#1F2937',
+          logoUrl: tenantData.logoUrl,
+          showHero: tenantData.showHero ?? true,
+          heroTitle: tenantData.heroTitle || 'Welcome to Our Store',
+          heroSubtitle: tenantData.heroSubtitle || 'Discover amazing products at great prices',
+          heroCtaLabel: tenantData.heroCtaLabel || 'Shop Now',
+          heroCtaHref: tenantData.heroCtaHref || '#products',
+          heroImageUrl: tenantData.heroImageUrl,
+          direction: tenantData.direction || 'ltr',
+          locale: tenantData.locale || 'en-US',
+        })
       }
     } catch (e: any) {
       console.error('Failed to load settings:', e.message)
@@ -118,6 +161,37 @@ export default function StorefrontPage() {
       }
     } catch (e: any) {
       console.error('Failed to load cart count:', e.message)
+    }
+  }
+
+  async function addToCart(productId: string) {
+    if (!isSignedIn || !tenantSlug) {
+      window.location.href = '/sign-in'
+      return
+    }
+
+    setAddingToCart(productId)
+    try {
+      const res = await fetch('/api/v1/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-slug': tenantSlug
+        },
+        body: JSON.stringify({
+          productId,
+          quantity: 1
+        })
+      })
+      
+      if (res.ok) {
+        // Refresh cart count
+        loadCartCount()
+      }
+    } catch (e: any) {
+      console.error('Failed to add to cart:', e.message)
+    } finally {
+      setAddingToCart(null)
     }
   }
 
@@ -143,214 +217,140 @@ export default function StorefrontPage() {
   })
 
   // Get unique categories from products (placeholder)
-  const categories = ['all', 'electronics', 'clothing', 'home', 'books']
+  const categories = ['all', ...(settings?.categories || [])]
 
   if (!tenantSlug) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAF7F2' }}>
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Store Not Found</h1>
-          <p className="text-gray-600">Please access via subdomain like acme.localhost:3002</p>
+          <p className="text-gray-600">Please access via subdomain like acme.localhost:3000</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!settings) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAF7F2' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p>Loading store...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div 
+      className="min-h-screen"
+      style={{ backgroundColor: settings.bg }}
+    >
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Store Name */}
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">
-                {settings?.storeName || tenantSlug.toUpperCase()}
-              </h1>
-            </div>
+      <StorefrontHeader
+        storeName={settings.storeName}
+        logoUrl={settings.logoUrl}
+        cartCount={cartCount}
+        onSearch={setSearchTerm}
+        onCartClick={() => window.location.href = '/cart'}
+        onCheckoutClick={() => window.location.href = '/checkout'}
+      />
 
-            {/* Search Bar */}
-            <div className="flex-1 max-w-lg mx-8">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Cart & Auth */}
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="outline"
-                onClick={() => window.location.href = '/cart'}
-                className="relative"
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Cart
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Button>
-              
-              <Button
-                onClick={() => window.location.href = '/checkout'}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                🛒 Checkout
-              </Button>
-              
-              {isSignedIn ? (
-                <Button onClick={() => window.location.href = '/admin/products'}>
-                  Admin
-                </Button>
-              ) : (
-                <Button onClick={() => window.location.href = '/sign-in'}>
-                  Sign In
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Hero Section */}
+      <HeroSection
+        showHero={settings.showHero}
+        title={settings.heroTitle}
+        subtitle={settings.heroSubtitle}
+        ctaLabel={settings.heroCtaLabel}
+        ctaHref={settings.heroCtaHref}
+        imageUrl={settings.heroImageUrl}
+      />
 
       {/* Categories */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 py-4 overflow-x-auto">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
-                  selectedCategory === category
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category.charAt(0).toUpperCase() + category.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <CategoryChips
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        loading={loading}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {loading ? (
-          <div className="text-center py-12">
-            <p>Loading products...</p>
+        {/* Store Description */}
+        {settings.description && (
+          <div className="mb-8 text-center">
+            <p 
+              className="max-w-2xl mx-auto text-lg"
+              style={{ color: settings.text + 'CC' }}
+            >
+              {settings.description}
+            </p>
           </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
-          </div>
-        ) : (
-          <>
-            {/* Store Description */}
-            {settings?.description && (
-              <div className="mb-8 text-center">
-                <p className="text-gray-600 max-w-2xl mx-auto">
-                  {settings.description}
-                </p>
-              </div>
-            )}
-
-            {/* Products Grid */}
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No products found.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {filteredProducts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                    {/* Product Image */}
-                    <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
-                      {product.image ? (
-                        <img 
-                          src={`/api/v1/images/${encodeURIComponent(product.image)}`}
-                          alt={product.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            console.log('Image failed to load:', `/api/v1/images/${encodeURIComponent(product.image)}`);
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling!.style.display = 'flex';
-                          }}
-                          onLoad={() => {
-                            console.log('Image loaded successfully:', `/api/v1/images/${encodeURIComponent(product.image)}`);
-                          }}
-                        />
-                      ) : null}
-                      <div className={`w-full h-full flex items-center justify-center ${product.image ? 'hidden' : 'flex'}`}>
-                        <div className="text-center">
-                          <span className="text-4xl text-gray-400 mb-2">📦</span>
-                          <p className="text-xs text-gray-500">No Image</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Product Info */}
-                    <div className="p-6">
-                      <h3 className="font-semibold text-gray-900 mb-3 text-lg line-clamp-2">
-                        {product.title}
-                      </h3>
-                      
-
-                      
-                      {product.description && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                          {product.description}
-                        </p>
-                      )}
-
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-2xl font-bold text-blue-600">
-                          ${product.price}
-                        </span>
-                        
-                        <Button
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => {
-                            window.location.href = `/product/${product.id}`;
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-
-                      {product.hasVariants && (
-                        <div className="flex items-center gap-1 text-xs text-blue-600">
-                          <span>⚙️</span>
-                          <span>Multiple options available</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
         )}
+
+        {/* Products Section */}
+        <div id="products">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p style={{ color: settings.text }}>Loading products...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600">{error}</p>
+            </div>
+          ) : (
+            <>
+              {/* Products Grid */}
+              {filteredProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🔍</div>
+                  <h3 className="text-xl font-semibold mb-2" style={{ color: settings.text }}>
+                    {searchTerm ? 'No products found' : 'No products available'}
+                  </h3>
+                  <p style={{ color: settings.text + 'CC' }}>
+                    {searchTerm 
+                      ? `No products match "${searchTerm}"`
+                      : 'Check back later for new products'
+                    }
+                  </p>
+                  {searchTerm && (
+                    <Button
+                      onClick={() => setSearchTerm('')}
+                      className="mt-4"
+                      style={{ backgroundColor: settings.primary, color: '#FFFFFF' }}
+                    >
+                      Clear Search
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAddToCart={addToCart}
+                      loading={addingToCart === product.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </main>
 
-      {/* Footer with Social Links */}
-      <footer className="bg-gray-900 text-white">
+      {/* Footer */}
+      <footer className="mt-16" style={{ backgroundColor: settings.primary, color: '#FFFFFF' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Store Info */}
             <div>
               <h3 className="text-lg font-semibold mb-4">
-                {settings?.storeName || tenantSlug.toUpperCase()}
+                {settings.storeName}
               </h3>
-              {settings?.description && (
+              {settings.description && (
                 <p className="text-gray-300 text-sm">
                   {settings.description}
                 </p>
@@ -362,13 +362,13 @@ export default function StorefrontPage() {
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="/cart" className="text-gray-300 hover:text-white">
+                  <a href="/cart" className="text-gray-300 hover:text-white transition-colors">
                     Shopping Cart
                   </a>
                 </li>
                 <li>
-                  <a href="/admin/products" className="text-gray-300 hover:text-white">
-                    Admin Panel
+                  <a href="/checkout" className="text-gray-300 hover:text-white transition-colors">
+                    Checkout
                   </a>
                 </li>
               </ul>
@@ -378,42 +378,42 @@ export default function StorefrontPage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
               <div className="flex space-x-4">
-                {settings?.socialLinks?.instagram && (
+                {settings.socialLinks?.instagram && (
                   <a
                     href={settings.socialLinks.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-white"
+                    className="text-gray-300 hover:text-white transition-colors"
                   >
                     <Instagram className="h-5 w-5" />
                   </a>
                 )}
-                {settings?.socialLinks?.facebook && (
+                {settings.socialLinks?.facebook && (
                   <a
                     href={settings.socialLinks.facebook}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-white"
+                    className="text-gray-300 hover:text-white transition-colors"
                   >
                     <Facebook className="h-5 w-5" />
                   </a>
                 )}
-                {settings?.socialLinks?.twitter && (
+                {settings.socialLinks?.twitter && (
                   <a
                     href={settings.socialLinks.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-white"
+                    className="text-gray-300 hover:text-white transition-colors"
                   >
                     <Twitter className="h-5 w-5" />
                   </a>
                 )}
-                {settings?.socialLinks?.whatsapp && (
+                {settings.socialLinks?.whatsapp && (
                   <a
                     href={settings.socialLinks.whatsapp}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-white"
+                    className="text-gray-300 hover:text-white transition-colors"
                   >
                     <MessageCircle className="h-5 w-5" />
                   </a>
@@ -422,11 +422,21 @@ export default function StorefrontPage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2024 {settings?.storeName || tenantSlug.toUpperCase()}. All rights reserved.</p>
+          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-400">
+            <p>&copy; 2024 {settings.storeName}. All rights reserved.</p>
           </div>
         </div>
       </footer>
     </div>
+  )
+}
+
+export default function StorefrontPage() {
+  return (
+    <CurrencyProvider>
+      <TenantThemeProvider>
+        <StorefrontContent />
+      </TenantThemeProvider>
+    </CurrencyProvider>
   )
 }
