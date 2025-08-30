@@ -199,6 +199,13 @@ export default function StorefrontPage() {
                 )}
               </Button>
               
+              <Button
+                onClick={() => window.location.href = '/checkout'}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                🛒 Checkout
+              </Button>
+              
               {isSignedIn ? (
                 <Button onClick={() => window.location.href = '/admin/products'}>
                   Admin

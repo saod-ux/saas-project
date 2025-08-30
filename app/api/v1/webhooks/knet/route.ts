@@ -12,20 +12,20 @@ const webhookSchema = z.object({
   metadata: z.record(z.any()).optional(),
 })
 
-// POST /api/v1/webhooks/myfatoorah - Handle payment confirmations
+// POST /api/v1/webhooks/knet - Handle KNET payment confirmations
 export async function POST(request: NextRequest) {
   try {
     // In production, verify webhook signature
-    const signature = request.headers.get('x-myfatoorah-signature')
+    const signature = request.headers.get('x-knet-signature')
     if (!signature) {
-      console.warn('Missing MyFatoorah webhook signature')
+      console.warn('Missing KNET webhook signature')
       // For now, allow without signature in development
     }
 
     const body = await request.json()
     const validatedData = webhookSchema.parse(body)
 
-    console.log('MyFatoorah webhook received:', validatedData)
+    console.log('KNET webhook received:', validatedData)
 
     // Find the order
     const order = await prismaRW.order.findUnique({
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error: any) {
-    console.error('MyFatoorah webhook error:', error)
+    console.error('KNET webhook error:', error)
     
     if (error.name === 'ZodError') {
       return NextResponse.json(
