@@ -58,6 +58,14 @@
 - Risks: If some environment relies on hardcoded demo ID, it must have a tenant doc with slug present
 - Env vars referenced: FIREBASE_* (Admin), NEXT_PUBLIC_FIREBASE_* (client)
 
+## Entry - T-009 Zod validation for admin media endpoints
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Scope: Validate request bodies for /api/admin/[slug]/logo and /api/admin/[slug]/hero/slides
+- Changes:
+  - logo: require `{ logoUrl: string|null }` with url() when present
+  - hero/slides: require `{ slides: [{ type: 'image'|'video', url, sortOrder, isActive? }] }`
+- Behavior: Invalid payload returns 400 with flattened zod errors; no changes to success path
+- Risks: Clients sending malformed payloads will now receive 400; aligns with contract
 ## Entry - T-002 Enforce logo/hero sources of truth
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Scope: Ensure `tenants/{id}.logoUrl` and `heroSlides` are the only sources of truth
