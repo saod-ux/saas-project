@@ -1,0 +1,67 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prismaRO, prismaRW } from '@/lib/db'
+import { resolveTenantBySlug } from '@/lib/tenant'
+import { revalidatePath } from 'next/cache'
+
+async function requireTenantAdmin(request: NextRequest, tenantId: string) {
+	try {
+		const { getCurrentUser } = await import('@/lib/auth')
+		const user = await getCurrentUser()
+		if (!user) return false
+		const membership = await prismaRO.membership.findFirst({
+			where: { tenantId, userId: user.id },
+			select: { role: true }
+		})
+		return membership?.role === 'ADMIN' || membership?.role === 'OWNER'
+	} catch {
+		return false
+	}
+}
+
+// PATCH /api/v1/categories/:id - update
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+	try {
+		const tenantSlug = request.headers.get('x-tenant-slug')
+		if (!tenantSlug) return NextResponse.json({ error: 'Tenant slug required' }, { status: 400 })
+		const tenant = await resolveTenantBySlug(tenantSlug)
+		if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+
+		const authorized = await requireTenantAdmin(request, tenant.id)
+		if (!authorized) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+		const body = await request.json()
+		const data: any = {}
+		if ('name' in body) data.name = (body.name || '').toString().trim()
+		if ('sortOrder' in body && Number.isFinite(body.sortOrder)) data.sortOrder = body.sortOrder
+		// Ignore slug changes to keep URLs stable
+
+		const updated = await prismaRW.category.update({ where: { id: params.id }, data })
+		revalidatePath(`/${tenant.slug}`)
+		return NextResponse.json({ data: updated })
+	} catch (error: any) {
+		console.error('PATCH /categories/:id error:', error)
+		if (error?.code === 'P2025') return NextResponse.json({ error: 'Not found' }, { status: 404 })
+		return NextResponse.json({ error: 'Failed to update category' }, { status: 500 })
+	}
+}
+
+// DELETE /api/v1/categories/:id - delete
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+	try {
+		const tenantSlug = request.headers.get('x-tenant-slug')
+		if (!tenantSlug) return NextResponse.json({ error: 'Tenant slug required' }, { status: 400 })
+		const tenant = await resolveTenantBySlug(tenantSlug)
+		if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+
+		const authorized = await requireTenantAdmin(request, tenant.id)
+		if (!authorized) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+		await prismaRW.category.delete({ where: { id: params.id } })
+		revalidatePath(`/${tenant.slug}`)
+		return NextResponse.json({ ok: true })
+	} catch (error: any) {
+		console.error('DELETE /categories/:id error:', error)
+		if (error?.code === 'P2025') return NextResponse.json({ error: 'Not found' }, { status: 404 })
+		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+	}
+}

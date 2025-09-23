@@ -5,10 +5,13 @@ export const createProductSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   description: z.string().optional(),
   price: z.number().positive('Price must be positive'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('KWD'), // Changed to KWD
   stock: z.number().int().min(0, 'Stock cannot be negative').default(0),
   status: z.enum(['active', 'draft', 'archived']).default('active'),
   seoJson: z.record(z.any()).optional(),
+  // Category support
+  primaryCategoryId: z.string().optional(), // Primary category (required for published products)
+  additionalCategoryIds: z.array(z.string()).optional(), // Additional categories
 })
 
 export const updateProductSchema = createProductSchema.partial()
@@ -16,6 +19,7 @@ export const updateProductSchema = createProductSchema.partial()
 export const productQuerySchema = z.object({
   q: z.string().optional(),
   status: z.enum(['active', 'draft', 'archived']).optional(),
+  categoryId: z.string().optional(), // Filter by category
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
 })

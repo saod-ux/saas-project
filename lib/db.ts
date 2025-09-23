@@ -1,78 +1,267 @@
-import { PrismaClient } from '@prisma/client'
+// Re-export only the necessary Firebase database utilities
+export { 
+  getTenantDocuments, 
+  getAllDocuments, 
+  createDocument, 
+  updateDocument, 
+  deleteDocument, 
+  getDocument,
+  createBatch,
+  commitBatch,
+  addToBatch,
+  updateInBatch,
+  deleteInBatch,
+  COLLECTIONS
+} from './firebase/db';
 
-const globalForPrisma = globalThis as unknown as {
-  prismaRW: PrismaClient | undefined
-  prismaRO: PrismaClient | undefined
-}
-
-// Primary read-write client
-export const prismaRW = globalForPrisma.prismaRW ?? new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
-})
-
-// Read-only client (falls back to RW if READONLY_DATABASE_URL not set)
-export const prismaRO = globalForPrisma.prismaRO ?? new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.READONLY_DATABASE_URL || process.env.DATABASE_URL
-    }
-  }
-})
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prismaRW = prismaRW
-  globalForPrisma.prismaRO = prismaRO
-}
-
-// Helper to execute queries with tenant context in RW transaction
-export async function withTenantRW<T>(tenantId: string, fn: (tx: PrismaClient) => Promise<T>): Promise<T> {
-  return prismaRW.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_tenant_id(${tenantId})`
-    return fn(tx as unknown as PrismaClient)
-  })
-}
-
-// Helper to execute queries with tenant context in RO transaction
-export async function withTenantRO<T>(tenantId: string, fn: (tx: PrismaClient) => Promise<T>): Promise<T> {
-  return prismaRO.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_tenant_id(${tenantId})`
-    return fn(tx as unknown as PrismaClient)
-  })
-}
-
-// Legacy helper for backward compatibility
-export async function withTenant<T>(tenantId: string, fn: (tx: PrismaClient) => Promise<T>): Promise<T> {
-  return withTenantRW(tenantId, fn)
-}
-
-// Lightweight wrappers that run each call in its own tenant-scoped transaction
-export function getTenantPrisma(tenantId: string) {
-  return {
-    product: {
-      findMany: async (args?: any) => withTenantRO(tenantId, (tx) => (tx as any).product.findMany(args)),
-      findUnique: async (args: any) => withTenantRO(tenantId, (tx) => (tx as any).product.findUnique(args)),
-      count: async (args?: any) => withTenantRO(tenantId, (tx) => (tx as any).product.count(args)),
-      create: async (args: any) => withTenantRW(tenantId, (tx) => (tx as any).product.create(args)),
-      update: async (args: any) => withTenantRW(tenantId, (tx) => (tx as any).product.update(args)),
-      delete: async (args: any) => withTenantRW(tenantId, (tx) => (tx as any).product.delete(args)),
+// Legacy compatibility - these will be replaced with Firestore equivalents
+export const prisma = {
+  // This will be replaced with Firestore operations
+  tenant: {
+    findUnique: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
     },
-    order: {
-      findMany: async (args?: any) => withTenantRO(tenantId, (tx) => (tx as any).order.findMany(args)),
-      findUnique: async (args: any) => withTenantRO(tenantId, (tx) => (tx as any).order.findUnique(args)),
-      count: async (args?: any) => withTenantRO(tenantId, (tx) => (tx as any).order.count(args)),
-      create: async (args: any) => withTenantRW(tenantId, (tx) => (tx as any).order.create(args)),
-      update: async (args: any) => withTenantRW(tenantId, (tx) => (tx as any).order.update(args)),
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
     },
-    tenant: {
-      findUnique: async (args: any) => withTenantRO(tenantId, (tx) => (tx as any).tenant.findUnique(args)),
-      update: async (args: any) => withTenantRW(tenantId, (tx) => (tx as any).tenant.update(args)),
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
     },
-  }
-}
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    count: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  user: {
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    count: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  domain: {
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    count: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  product: {
+    count: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  category: {
+    count: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  subscription: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  paymentConfig: {
+    findUnique: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  page: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    upsert: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  category: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    count: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  product: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    count: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  productImage: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  order: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  heroSlide: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  payment: {
+    findFirst: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    findMany: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    create: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    update: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+    delete: async (args: any) => {
+      // TODO: Implement with Firestore
+      throw new Error('Prisma operations not supported. Use Firestore utilities instead.');
+    },
+  },
+  // Add $transaction method
+  $transaction: async (args: any) => {
+    // TODO: Implement with Firestore
+    throw new Error('Prisma transactions not supported. Use Firestore utilities instead.');
+  },
+};
 
-// Export legacy prisma for backward compatibility
-export const prisma = prismaRW
+export const prismaRW = prisma;

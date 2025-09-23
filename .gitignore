@@ -1,7 +1,6 @@
 # Node
 node_modules/
 .npm/
-package-lock.json
 
 # Next.js
 .next/
@@ -32,3 +31,7 @@ coverage/
 
 # Cache
 .cache/
+
+# Firebase secrets
+secrets/mkdir secrets/
+*.json

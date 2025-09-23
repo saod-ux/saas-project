@@ -1,244 +1,168 @@
-# SaaS Platform (Phase 1)
+# E-view (MVP) - Multi-tenant SaaS Platform
 
-Multi-tenant Shopify-style starter. Next.js App Router + Prisma + Postgres with RLS.
+Multi-tenant e-commerce platform built with Next.js App Router, Azure AD authentication, Azure PostgreSQL, and Azure Blob Storage.
 
 ## Prerequisites
 - Node 18+
-- Postgres database (Neon recommended)
+- Azure PostgreSQL database
+- Azure AD tenant for authentication
+- Azure Storage Account for file uploads
 
 ## Environment
 Create `.env` at project root:
 
 ```
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DB?schema=public"
-```
+# Azure AD (NextAuth)
+AZURE_AD_CLIENT_ID=your_client_id
+AZURE_AD_CLIENT_SECRET=your_client_secret
+AZURE_AD_TENANT_ID=your_tenant_id
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret
 
-## Install
+# Azure PostgreSQL
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require
 
-```
-npm install
-```
+# Azure Blob Storage
+AZURE_STORAGE_ACCOUNT=eviewstorage
+AZURE_STORAGE_CONNECTION_STRING=your_connection_string
+AZURE_STORAGE_CONTAINER=uploads
 
-## Prisma
-
-Generate client:
-```
-npm run db:generate
-```
-
-Create and run migrations:
-```
-# Create initial tables from prisma/schema.prisma
-npx prisma migrate dev --name init
-
-# Apply RLS policies
-# Prisma won't run raw SQL migrations in order unless created; you can run manually too
-psql "$DATABASE_URL" -f prisma/migrations/001_enable_rls/migration.sql
-```
-
-Seed demo data:
-```
-npm run db:seed
-```
-
-## Dev server
-
-```
-npm run dev
-```
-
-Open admin for a tenant:
-- acme: `http://acme.localhost:3000/admin/products`
-- moka: `http://moka.localhost:3000/admin/products`
-
-## API v1
-- GET `/api/v1/products?q=`
-- POST `/api/v1/products`
-- PATCH `/api/v1/products/:id`
-- GET `/api/v1/settings`
-- PATCH `/api/v1/settings`
-- GET `/api/v1/orders`
-- POST `/api/v1/orders`
-- POST `/api/v1/webhooks/myfatoorah` (stub)
-
-All requests are tenant-scoped via subdomain or custom domain. RLS blocks cross-tenant access using `set_config('app.tenant_id', ...)`.
-
-## Notes
-- Phase 2 will add auth + RBAC and presigned uploads.
-- Use Prisma Studio to inspect data: `npm run db:studio`.
-
-# SaaS Platform (Phase 2)
-
-Multi-tenant Shopify-style starter with authentication, RBAC, and file uploads. Next.js App Router + Prisma + Postgres with RLS + Clerk + Cloudflare R2.
-
-## Prerequisites
-- Node 18+
-- Postgres database (Neon for dev, AWS RDS for production)
-- Clerk account for authentication
-- Cloudflare R2 account for file storage
-
-## Environment
-Create `.env` at project root:
-
-```
-# Production (AWS RDS)
-DATABASE_URL=postgresql://USER:PASSWORD@rds-proxy-endpoint:5432/DB?sslmode=require
-READONLY_DATABASE_URL=postgresql://USER:PASSWORD@read-replica-endpoint:5432/DB?sslmode=require
-
-# Development (local Postgres or Neon)
-# DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/saas_platform
-# READONLY_DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/saas_platform
-
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/admin/products
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/admin/products
-
-# Cloudflare R2 Storage
-R2_ACCOUNT_ID=your_account_id
-R2_ACCESS_KEY_ID=your_access_key_id
-R2_SECRET_ACCESS_KEY=your_secret_access_key
-R2_BUCKET_NAME=your_bucket_name
-R2_PUBLIC_URL=https://your-bucket.your-subdomain.r2.cloudflarestorage.com
-
-ROOT_DOMAIN=localhost
+# Optional
+PLATFORM_BASE_DOMAIN=localhost
 ```
 
 ## Setup Instructions
 
-### 1. Clerk Authentication
-1. Go to [clerk.com](https://clerk.com) and create an account
-2. Create a new application
-3. Copy your publishable key and secret key
-4. Set the redirect URLs in Clerk dashboard:
-   - Sign in: `http://localhost:3000/sign-in`
-   - Sign up: `http://localhost:3000/sign-up`
-   - After sign in: `http://localhost:3000/admin/products`
-   - After sign up: `http://localhost:3000/admin/products`
+### 1. Azure AD Authentication
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to Azure Active Directory > App registrations
+3. Create a new registration
+4. Set redirect URI: `http://localhost:3000/api/auth/callback/azure-ad`
+5. Enable ID tokens in Authentication settings
+6. Copy Client ID, Client Secret, and Tenant ID
 
-### 2. Cloudflare R2 Storage
-1. Go to [dash.cloudflare.com](https://dash.cloudflare.com)
-2. Navigate to R2 Object Storage
-3. Create a new bucket
-4. Create API tokens with R2 permissions
-5. Copy account ID, access key, and secret key
+### 2. Azure PostgreSQL
+1. Create Azure Database for PostgreSQL Flexible Server
+2. Configure firewall rules to allow your IP
+3. Copy connection string to `DATABASE_URL`
 
-### 3. Database Setup
-1. Set your `DATABASE_URL` in `.env`
-2. Run migrations: `npm run db:migrate`
-3. Seed data: `npm run db:seed`
+### 3. Azure Blob Storage
+1. Create Azure Storage Account
+2. Create a container named "uploads"
+3. Copy connection string to `AZURE_STORAGE_CONNECTION_STRING`
 
 ## Install & Run
 
 ```
 npm install
-npm run db:migrate
-npm run db:seed
+npm run db:generate
+npm run db:push
 npm run dev
 ```
 
-## Phase 2 Features
+## Features
 
 ### Authentication & RBAC
-- **User Roles**: OWNER, ADMIN, STAFF, VIEWER
-- **Team Management**: Invite members, assign roles
-- **Permission System**: Role-based access control
-- **Tenant Isolation**: Users can only access their tenant data
+- **Azure AD Integration**: Enterprise authentication
+- **User Roles**: SUPER_ADMIN, OWNER, ADMIN, EDITOR, STAFF, VIEWER
+- **Platform Admin**: Manage all merchants from central dashboard
+- **Tenant Admin**: Individual merchant management
 
 ### File Uploads
-- **Product Images**: Upload and attach to products
-- **R2 Storage**: Cloudflare R2 integration
-- **Presigned URLs**: Secure direct uploads
-- **Image Management**: Organize and order product images
+- **Azure Blob Storage**: Production file storage
+- **Local Storage**: Development fallback
+- **SAS URLs**: Secure direct uploads
+- **Image Management**: Product images and media
 
-### API Security
-- **Authentication Required**: All endpoints require valid session
-- **Role Validation**: Endpoints check user permissions
-- **Input Validation**: Zod schemas for all inputs
-- **Error Handling**: Proper HTTP status codes (401, 403, 404, 422)
+### Multi-tenant Architecture
+- **Tenant Isolation**: Complete data separation
+- **Custom Domains**: Support for custom merchant domains
+- **Platform Management**: Centralized merchant management
 
-## API v1 (Phase 2)
-- **Products**: `GET`, `POST`, `PATCH`, `DELETE` with auth
-- **Orders**: `GET`, `POST` with auth
-- **Settings**: `GET`, `PATCH` with auth
-- **Invites**: `GET`, `POST` for team management
-- **Uploads**: `POST /presign` for file uploads, `POST /attach` for linking
+## API Endpoints
 
-## Testing Flows
+### Platform Admin
+- `GET /api/platform/tenants` - List all merchants
+- `POST /api/platform/tenants` - Create new merchant
+- `GET /api/platform/tenants/[slug]/status` - Get merchant status
 
-### 1. Authentication Flow
-1. Visit `/admin/products` when signed out → redirected to login
-2. Sign in with Clerk → redirected to admin dashboard
-3. Non-member access → 403 Forbidden
+### Tenant Admin
+- `GET /api/admin/[tenantSlug]/products` - List products
+- `POST /api/admin/[tenantSlug]/products` - Create product
+- `PATCH /api/admin/[tenantSlug]/products/[id]` - Update product
 
-### 2. Team Management
-1. Admin creates invitation → logs accept URL in dev console
-2. User accepts invitation → membership created and activated
-3. User can now access tenant resources
+### Storefront
+- `GET /api/storefront/[tenantSlug]/products` - Public product listing
+- `POST /api/storefront/[tenantSlug]/cart/add` - Add to cart
+- `POST /api/storefront/[tenantSlug]/checkout` - Process checkout
 
-### 3. File Uploads
-1. Generate presigned URL via `POST /uploads/presign`
-2. Upload file directly to R2
-3. Attach file to product via `POST /uploads/attach`
-4. Image appears in product management UI
+## Testing
 
-## Development Notes
+### Authentication Test
+1. Visit `http://localhost:3000/test-auth`
+2. Click "Sign in with Azure AD"
+3. Complete Microsoft login
+4. Verify session data is returned
 
-- **RLS**: Applied via Prisma migrations (no external psql required)
-- **Read-Only Path**: Read endpoints use `prismaRO` when `READONLY_DATABASE_URL` is set
-- **Stub Implementation**: R2 integration is stubbed for development
-- **Error Mapping**: Clear error responses with proper HTTP status codes
+### Platform Admin
+1. Visit `http://localhost:3000/admin/platform/merchants`
+2. Create new merchant
+3. Verify merchant appears in list
+4. Test Admin/Storefront quick links
 
-## Production Setup (AWS)
+### Merchant Storefront
+1. Visit `http://localhost:3000/[merchant-slug]/retail`
+2. Browse products and test cart functionality
 
-### 1. Create RDS Postgres Instance
-- Engine: PostgreSQL 15+
-- Multi-AZ: Enabled for high availability
-- Instance: db.t3.micro (dev) or db.r6g.large (prod)
-- Storage: 20GB+ with auto-scaling
-- Security Group: Allow inbound from your app servers
+## Phase 3 Status (Complete E-commerce Platform)
 
-### 2. Create RDS Proxy
-- Target: Your RDS instance
-- IAM Authentication: Enabled
-- Secrets Manager: Store database credentials
-- Connection pooling: Enabled (min: 1, max: 100)
+### **Customer Storefront** (`/`):
+- ✅ **Product Browsing**: Grid layout with search and filtering
+- ✅ **Product Details**: Variant selection, quantity, add to cart
+- ✅ **Shopping Cart**: `/cart` page with item management
+- ✅ **Checkout Flow**: Order creation and payment initiation
+- ✅ **Social Media Integration**: Footer with merchant's social links
+- ✅ **Store Customization**: Branding, store name, description
 
-### 3. Create Read Replica (Optional)
-- Source: Your RDS instance
-- Multi-AZ: Enabled
-- Use for read-heavy operations
+### **Admin Dashboard** (`/admin`):
+- ✅ **Product Management**: CRUD operations, image uploads
+- ✅ **Product Options & Variants**: Flexible configurations (Size, Color, etc.)
+- ✅ **Store Settings**: `/admin/settings` - comprehensive merchant control center
+  - Store information (name, description, contact)
+  - Social media links (Instagram, Facebook, Twitter, WhatsApp, TikTok)
+  - Branding (colors, logo, favicon)
+  - Product categories management
+- ✅ **Order Management**: View and manage customer orders
+- ✅ **Team Management**: Invite and manage store staff
 
-### 4. Secrets Manager
-- Store DATABASE_URL and READONLY_DATABASE_URL
-- Rotate credentials automatically
-- Use IAM roles for app access
+### **Technical Features**:
+- ✅ **Multi-tenant Architecture**: Complete tenant isolation
+- ✅ **Authentication & RBAC**: Clerk integration with role-based access
+- ✅ **Payment Integration**: MyFatoorah, KNET, Stripe (stubbed)
+- ✅ **File Uploads**: Cloudflare R2 integration for images
+- ✅ **Database**: Postgres with RLS, Prisma ORM
 
-## Next Steps (Phase 3)
-- Cart and checkout flow
-- Payment integration (per-tenant API keys)
-- Order lifecycle management
-- Webhook handling
+### **Complete Platform Testing**:
 
-Open admin for a tenant:
-- acme: `http://acme.localhost:3000/admin/products`
-- moka: `http://moka.localhost:3000/admin/products`
+#### **Customer Storefront Testing**:
+1. **Visit**: `http://localhost:3000/acme/` (customer storefront)
+2. **Browse products**: Search, filter, view product details
+3. **Add to cart**: Select variants, quantities, add items
+4. **Checkout**: Complete purchase flow
+5. **View social links**: Check footer for merchant's social media
 
-If these domains do not resolve locally, add to your hosts file and retry:
+#### **Admin Dashboard Testing**:
+1. **Visit**: `http://localhost:3000/acme/admin/products` (merchant admin)
+2. **Manage products**: Create, edit, delete products
+3. **Product variants**: Click "Options" to manage Size/Color variants
+4. **Store settings**: Click "Settings" to customize store
+   - Add store name, description, contact info
+   - Configure social media links (Instagram, Facebook, etc.)
+   - Set branding colors and logo
+   - Manage product categories
+5. **View storefront**: Click "View" on products to see customer experience
 
-macOS/Linux: edit `/etc/hosts`
-```
-127.0.0.1 acme.localhost moka.localhost
-```
-Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` with the same line above.
-
-## Phase 2 Status (Auth, RBAC, Uploads)
-
-- Authentication via Clerk with RBAC guards (OWNER/ADMIN/STAFF/VIEWER)
-- Endpoints hardened with tenant isolation and Zod validation
-- File uploads: presign → upload → attach (Cloudflare R2 compatible)
-- Admin UI: products list, create modal with optional image upload
-- Dev notes: ensure NEXT_PUBLIC_APP_URL and R2_PUBLIC_URL are set for images
+#### **Multi-tenant Testing**:
+- **acme**: `http://localhost:3000/acme/` and `http://localhost:3000/acme/admin/products`
+- **moka**: `http://localhost:3000/moka/` and `http://localhost:3000/moka/admin/products`
+- Verify complete tenant isolation

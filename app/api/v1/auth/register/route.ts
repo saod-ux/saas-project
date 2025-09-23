@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prismaRW } from '@/lib/db'
 import { resolveTenantBySlug } from '@/lib/tenant'
+import { createTenantUser, createMembership } from '@/lib/firebase/tenant'
 
 // POST /api/v1/auth/register - Register user and create membership
 export async function POST(request: NextRequest) {
   try {
-    // Get the Clerk token from the Authorization header
+    // Get the Firebase token from the Authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -37,49 +37,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email, name } = body
 
-    // Use raw SQL to avoid Prisma type issues
-    const result = await prismaRW.$transaction(async (tx) => {
-      // Check if user already exists
-      const existingUser = await tx.$queryRaw`
-        SELECT id, email, name FROM users WHERE "clerkId" = ${userId}
-      ` as any[]
+    // Create user in Firestore
+    const user = await createTenantUser(tenant.id, {
+      id: userId,
+      email: email || `user-${userId}@example.com`,
+      name: name || 'New User',
+      firebaseUid: userId,
+    })
 
-      let user
-      if (existingUser.length > 0) {
-        user = existingUser[0]
-      } else {
-        // Create new user
-        const newUser = await tx.$queryRaw`
-          INSERT INTO users (id, email, name, "clerkId", "createdAt", "updatedAt")
-          VALUES (gen_random_uuid()::text, ${email || `user-${userId}@example.com`}, ${name || 'New User'}, ${userId}, NOW(), NOW())
-          RETURNING id, email, name
-        ` as any[]
-        user = newUser[0]
-      }
-
-      // Check if membership already exists
-      const existingMembership = await tx.$queryRaw`
-        SELECT id FROM memberships WHERE "tenantId" = ${tenant.id} AND "userId" = ${user.id}
-      ` as any[]
-
-      if (existingMembership.length > 0) {
-        throw new Error('User already has membership in this tenant')
-      }
-
-      // Create membership with OWNER role
-      const membership = await tx.$queryRaw`
-        INSERT INTO memberships (id, "tenantId", "userId", role, status, "acceptedAt", "createdAt", "updatedAt")
-        VALUES (gen_random_uuid()::text, ${tenant.id}, ${user.id}, 'OWNER', 'ACTIVE', NOW(), NOW(), NOW())
-        RETURNING id, role, status
-      ` as any[]
-
-      return { user, membership: membership[0] }
+    // Create membership with OWNER role
+    const membership = await createMembership(tenant.id, {
+      id: `membership_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: userId,
+      role: 'OWNER',
+      status: 'ACTIVE',
+      acceptedAt: new Date(),
     })
 
     return NextResponse.json({
       data: {
-        user: result.user,
-        membership: result.membership
+        user: user,
+        membership: membership
       }
     }, { status: 201 })
 
