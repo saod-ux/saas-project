@@ -17,3 +17,12 @@
 - Artifacts:
   - docs/reports/current-state.md
   - docs/reports/artifacts/README.md
+
+## Entry - planning docs
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Generated:
+  - architecture.md (target architecture aligned with current stack)
+  - tasks.md (granular plan to stabilize and finish media flows)
+- Why: stabilize & finish multi-tenant media flows without rewrites; keep app deployable each step
+- Assumptions: continue using `e-viewstorage-public`; tenant isolation by `tenantId`; no schema migration needed immediately
+- Next immediate task: Centralize tenant resolution (slug→id) and remove demo-store special-case
