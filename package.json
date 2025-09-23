@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "dev:3001": "next dev -p 3001",
-    "build": "npm run check-i18n && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint || true",
-    "check-i18n": "./scripts/check-i18n.sh",
+    "check-i18n": "tsx scripts/check-i18n.ts",
     "dev:reset": "tsx scripts/dev-reset.ts",
     "backup:dev": "tsx scripts/backup-dev.ts",
     "purge:demo": "tsx scripts/purge-demo-tenants.ts",

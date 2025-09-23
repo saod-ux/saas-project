@@ -1,6 +1,7 @@
 // Server-side Firebase Storage utilities
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
+import { getStorageBucket, getPublicUrl } from '@/lib/config/storage';
 
 let serverStorage: any = null;
 
@@ -27,8 +28,8 @@ export const getServerStorage = async () => {
           private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         };
         
-// Use env-configured public bucket; default to e-viewstorage-public
-const normalizedBucket = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'e-viewstorage-public';
+// Use centralized bucket configuration
+const normalizedBucket = getStorageBucket(false);
 
         app = initializeApp({
           credential: cert(serviceAccount),
@@ -51,7 +52,7 @@ const normalizedBucket = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT
 // Server-side storage functions
 export const adminUploadFile = async (path: string, buffer: Buffer, metadata?: any) => {
   const storage = await getServerStorage();
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'e-viewstorage-public';
+  const bucketName = getStorageBucket(false);
   const bucket = storage.bucket(bucketName);
   const file = bucket.file(path);
   
@@ -62,15 +63,15 @@ export const adminUploadFile = async (path: string, buffer: Buffer, metadata?: a
     },
   });
   
-  // Construct public URL (bucket must have public access enabled)
-  const publicUrl = `https://storage.googleapis.com/${bucketName}/${path}`;
+  // Use centralized URL generation
+  const publicUrl = getPublicUrl(path);
   
   return { downloadURL: publicUrl, file };
 };
 
 export const adminDeleteFile = async (path: string) => {
   const storage = await getServerStorage();
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'e-viewstorage-public';
+  const bucketName = getStorageBucket(false);
   const bucket = storage.bucket(bucketName);
   const file = bucket.file(path);
   await file.delete();
@@ -79,7 +80,7 @@ export const adminDeleteFile = async (path: string) => {
 
 export const adminGetFileMetadata = async (path: string) => {
   const storage = await getServerStorage();
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'e-viewstorage-public';
+  const bucketName = getStorageBucket(false);
   const bucket = storage.bucket(bucketName);
   const file = bucket.file(path);
   const [metadata] = await file.getMetadata();

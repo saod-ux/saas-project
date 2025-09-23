@@ -139,7 +139,7 @@ npm run dev
 - ✅ **Multi-tenant Architecture**: Complete tenant isolation
 - ✅ **Authentication & RBAC**: Clerk integration with role-based access
 - ✅ **Payment Integration**: MyFatoorah, KNET, Stripe (stubbed)
-- ✅ **File Uploads**: Cloudflare R2 integration for images
+- ✅ **File Uploads**: Firebase Storage with public bucket for images
 - ✅ **Database**: Postgres with RLS, Prisma ORM
 
 ### **Complete Platform Testing**:

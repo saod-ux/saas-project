@@ -49,7 +49,7 @@
 - **API-First**: RESTful APIs with proper error handling
 - **Database**: PostgreSQL with Prisma ORM
 - **Caching**: Optimized for performance
-- **File Storage**: Local and Supabase storage support
+- **File Storage**: Firebase Storage with public bucket support
 - **Health Checks**: System monitoring and alerts
 
 ## 🧪 Testing & QA
@@ -108,10 +108,9 @@ DATABASE_URL="postgresql://..."
 NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="https://your-domain.com"
 
-# Supabase (Optional)
-NEXT_PUBLIC_SUPABASE_URL="..."
-NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
-SUPABASE_SERVICE_ROLE_KEY="..."
+# Firebase Storage (Required)
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="e-viewstorage-public"
+FIREBASE_STORAGE_BUCKET="e-viewstorage-public"
 
 # Payments
 TAP_PUBLIC_KEY="..."

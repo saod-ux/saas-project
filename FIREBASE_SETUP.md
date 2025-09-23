@@ -9,7 +9,7 @@ Add the following environment variables to your `.env` file:
 NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key_here
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=e-viewstorage-public
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
@@ -17,7 +17,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 FIREBASE_PROJECT_ID=your_project_id
 FIREBASE_CLIENT_EMAIL=your_service_account_email
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour_private_key_here\n-----END PRIVATE KEY-----\n"
-FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+FIREBASE_STORAGE_BUCKET=e-viewstorage-public
 
 # JWT Secret for customer authentication
 JWT_SECRET=your_jwt_secret_key_here
