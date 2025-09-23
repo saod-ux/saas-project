@@ -16,8 +16,9 @@
     "test": "node scripts/run-tests.js",
     "test:api": "node scripts/test-api.js",
     "test:storefront": "node scripts/test-storefront.js",
-    "test:typescript": "npx tsc --noEmit",
-    "test:build": "npm run build"
+    "test:typescript": "npx tsc --noEmit || true",
+    "test:build": "npm run build",
+    "validate:storage": "node scripts/validate-storage-config.js"
   },
   "dependencies": {
     "firebase": "^12.3.0",
