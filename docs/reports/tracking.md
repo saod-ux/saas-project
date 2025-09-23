@@ -1,5 +1,13 @@
 # Analysis Tracking
 
+## Entry - T-010 Structured logs on admin endpoints
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Scope: Add JSON structured logs (tenantSlug, tenantId, route, method, status, durationMs) for /logo and /hero/slides
+- Changes:
+  - /api/admin/[slug]/logo: info logs on GET/PUT success; error logs on failure
+  - /api/admin/[slug]/hero/slides: info logs on GET/PUT with counts; error logs on failure
+- Verifications: Manual requests produce JSON logs with required fields; no behavior change
+- Risks: Console noise in dev; acceptable for tracing. Can swap to a logger later
 ## Entry - T-006 Admin Appearance true round-trip
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Scope: Ensure Admin → Appearance loads fresh data and persists logo and hero changes via dedicated endpoints

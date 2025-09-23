@@ -12,10 +12,19 @@ export async function GET(
   { params }: { params: { tenantSlug: string } }
 ) {
   try {
+    const startedAt = Date.now();
     const tenant = await getTenantBySlug(params.tenantSlug);
     const logoUrl = tenant?.logoUrl ?? null;
+    console.log(JSON.stringify({
+      level: 'info', route: '/api/admin/[slug]/logo', method: 'GET', tenantSlug: params.tenantSlug,
+      tenantId: tenant?.id ?? null, status: 200, durationMs: Date.now() - startedAt
+    }));
     return NextResponse.json({ ok: true, logoUrl }, { headers: { "Cache-Control": "no-store" }});
   } catch (error) {
+    console.error(JSON.stringify({
+      level: 'error', route: '/api/admin/[slug]/logo', method: 'GET', tenantSlug: params.tenantSlug,
+      error: (error as Error).message, status: 500
+    }));
     return NextResponse.json({ ok: false, error: "Failed to fetch logo" }, { status: 500 });
   }
 }
@@ -25,6 +34,7 @@ export async function PUT(
   { params }: { params: { tenantSlug: string } }
 ) {
   try {
+    const startedAt = Date.now();
     const db = await getServerDb();
     const body = await request.json();
 
@@ -56,9 +66,16 @@ export async function PUT(
     revalidatePath(`/${params.tenantSlug}`, "page");
     revalidatePath(`/${params.tenantSlug}/retail`, "page");
     revalidatePath(`/admin/${params.tenantSlug}/appearance`, "page");
-
+    console.log(JSON.stringify({
+      level: 'info', route: '/api/admin/[slug]/logo', method: 'PUT', tenantSlug: params.tenantSlug,
+      tenantId, status: 200, durationMs: Date.now() - startedAt
+    }));
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" }});
   } catch (error) {
+    console.error(JSON.stringify({
+      level: 'error', route: '/api/admin/[slug]/logo', method: 'PUT', tenantSlug: params.tenantSlug,
+      error: (error as Error).message, status: 500
+    }));
     return NextResponse.json({ ok: false, error: "Failed to update logo" }, { status: 500 });
   }
 }
