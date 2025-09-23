@@ -17,35 +17,23 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
           cache: 'npm'
 
       - name: Install deps
         run: npm ci
 
       - name: Typecheck
-        run: |
-          if npm run | grep -q "test:typescript"; then
-            npm run test:typescript
-          else
-            npx tsc -p tsconfig.json --noEmit
-          fi
+        run: npm run test:typescript
 
       - name: Lint
-        run: |
-          if npm run | grep -q "lint"; then
-            npm run lint
-          else
-            npx next lint || true
-          fi
+        run: npm run lint
 
-      - name: Start dev server
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-        run: |
-          nohup npm run dev > dev.out 2>&1 & echo $! > dev.pid
-          # انتظر شوية يعطي فرصة للسيرفر يقلع
-          sleep 15
+      - name: Validate Storage Configuration
+        run: npm run validate:storage
+
+      - name: Start dev
+        run: nohup npm run dev & echo $! > dev.pid; sleep 15
 
       - name: Smoke tenant isolation
         env:

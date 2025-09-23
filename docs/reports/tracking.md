@@ -79,6 +79,21 @@
 - Env keys required: All Firebase env vars already configured in .env.local
 - Status: CI workflow created, TypeScript errors reduced from 283 to ~50, linting working, smoke script verified
 - Risks: Dev server start timing; increased CI time; can optimize later
+
+## Entry - T-012 CI lock file fix
+- Timestamp: 2025-09-23T10:00:00Z
+- Scope: Fix CI "lock file not found" error by ensuring package-lock.json is committed
+- Changes:
+  - .gitignore: Removed `package-lock.json` from ignore list to allow committing lock file
+  - .github/workflows/ci.yml: Simplified CI workflow to use exact format specified
+    - Setup Node with cache: 'npm'
+    - Install deps with `npm ci`
+    - Direct script calls without conditional checks
+    - Simplified dev server start command
+- Root cause: package-lock.json was being ignored by .gitignore, causing npm ci to fail
+- Fix required: User must generate and commit package-lock.json locally
+- Status: CI workflow updated, .gitignore fixed, waiting for manual lock file commit
+- Next steps: User will run `npm install` locally and commit package-lock.json
 ## Entry - T-008 Footer & bottom nav i18n
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Scope: Add bilingual (AR/EN) labels to mobile bottom nav and footer links/text
@@ -110,3 +125,48 @@
 - Tests: Upload still returns URL; Logo persistence handled via PUT /api/admin/[slug]/logo; hero via PUT /api/admin/[slug]/hero/slides
 - Risks: Existing clients sending `asLogo` to /api/uploads will no-op persistence; they must call /logo explicitly
 - Env vars referenced: FIREBASE_STORAGE_BUCKET / NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+
+## Entry - T-013 Firestore security rules and tenancy review
+- Timestamp: 2025-09-23T09:15:00Z
+- Scope: Draft Firestore security rules with multi-tenant isolation and create tenancy security documentation
+- Changes:
+  - firestore.rules: Complete security rules with tenant isolation, role-based access control, and cross-tenant access prevention
+  - firestore.indexes.json: Composite indexes for efficient tenant-scoped queries
+  - docs/security/tenancy.md: Comprehensive security model documentation including threat model, access control matrix, and testing strategy
+  - tests/firestore-security.test.js: Basic security rules tests for tenant isolation and access control
+- Key features:
+  - Tenant isolation enforced at document level with `tenantId` field
+  - Role-based access control (Platform Admin, Tenant Owner/Admin/Staff, Customer)
+  - Cross-tenant data access explicitly denied
+  - Customer data scoped to their own records within their tenant
+  - Audit logging and compliance considerations
+- Verifications: Security rules cover all collections (tenants, products, categories, orders, payments, users, memberships, etc.)
+- Risks: Rules are comprehensive but need testing in Firebase emulator; production deployment requires careful review
+- Next steps: Test rules in Firebase emulator, refine based on actual usage patterns
+
+## Entry - T-014 Remove bucket drift and legacy references
+- Timestamp: 2025-09-23T09:45:00Z
+- Scope: Ensure consistent bucket usage across codebase and enforce single source of truth for storage configuration
+- Changes:
+  - lib/config/storage.ts: Centralized storage configuration with single source of truth for bucket names and URL formats
+  - Updated all Firebase config files to use centralized bucket configuration:
+    - lib/firebase/client.ts: Use getStorageBucket(true) for client-side
+    - lib/firebase/client-simple.ts: Use getStorageBucket(true) for client-side
+    - lib/firebase/server-only.ts: Use getStorageBucket(false) for server-side
+    - lib/firebase/storage-server.ts: Use getStorageBucket(false) and getPublicUrl() for server-side
+  - FIREBASE_SETUP.md: Updated to use e-viewstorage-public as default bucket
+  - scripts/test-mock-upload.js: Updated URLs to use storage.googleapis.com format
+  - docs/PRODUCTION_READY_SUMMARY.md: Removed Supabase references, updated to Firebase Storage
+  - README.md: Updated file upload description to Firebase Storage
+  - scripts/validate-storage-config.js: Validation script to ensure consistency
+  - package.json: Added validate:storage script
+  - .github/workflows/ci.yml: Added storage configuration validation step
+- Key features:
+  - Single source of truth: e-viewstorage-public bucket with https://storage.googleapis.com URLs
+  - Centralized configuration with validation functions
+  - Removed all legacy bucket references (demo-project.appspot.com, your-project.appspot.com)
+  - Removed misleading Supabase/Cloudflare R2 references
+  - Automated validation in CI pipeline
+- Verifications: Validation script confirms 0 errors, 0 warnings across all checked files
+- Risks: None - all changes maintain backward compatibility and improve consistency
+- Next steps: Monitor for any new bucket references during development
