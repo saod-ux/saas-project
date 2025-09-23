@@ -42,6 +42,14 @@
 - Assumptions: continue using `e-viewstorage-public`; tenant isolation by `tenantId`; no schema migration needed immediately
 - Next immediate task: Centralize tenant resolution (slug→id) and remove demo-store special-case
 
+## Entry - T-008 Footer & bottom nav i18n
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Scope: Add bilingual (AR/EN) labels to mobile bottom nav and footer links/text
+- Changes:
+  - components/store/MobileBottomNav.tsx: client i18n with localStorage-driven lang, AR/EN labels
+  - components/store/Footer.tsx: use AR/EN labels for categories, customer service, newsletter, legal links, etc.
+- Verifications: Toggled `lang` in localStorage and via custom `languageChanged` event → labels switch between AR/EN; no layout regressions; no unrelated edits
+- Risks: Client-only i18n relies on localStorage + event; future central i18n provider could replace this
 ## Entry - T-001 Centralize tenant resolution
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Scope: Remove demo-store hardcode; unify slug→tenantId via Firestore
