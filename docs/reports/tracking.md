@@ -1,5 +1,11 @@
 # Analysis Tracking
 
+## Entry - T-006 Admin Appearance true round-trip
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Scope: Ensure Admin → Appearance loads fresh data and persists logo and hero changes via dedicated endpoints
+- Changes: None required; existing flows meet acceptance (LogoUploader → PUT /api/admin/[slug]/logo, HeroMediaManager → PUT /api/admin/[slug]/hero/slides, GET /api/admin/[slug]/appearance for preview)
+- Verifications: Upload logo, confirm state updates and refresh reflects new logo; add/delete hero slide, Save, confirm immediate persist and refresh shows updated slides; headers set to no-store for GET; revalidation occurs on PUT
+- Risks: Concurrent hero edits may race; recommend transaction/versioning later (tracked in tasks)
 ## Entry - stabilize/tenant-media
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Branch: stabilize/tenant-media
@@ -18,6 +24,15 @@
   - docs/reports/current-state.md
   - docs/reports/artifacts/README.md
 
+## Entry - T-007 Tenant isolation smoke tests
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Scope: Add script to verify per-tenant media isolation via public APIs
+- Changes: scripts/smoke-tenant-isolation.sh (reads appearance for two slugs, prints logo/hero URLs, fetches retail pages)
+- Commands run:
+  - chmod +x scripts/smoke-tenant-isolation.sh
+  - BASE_URL=http://localhost:3000 ./scripts/smoke-tenant-isolation.sh demo-store ssas
+- Findings: Distinct logo/hero URLs across tenants; storefront HTML loads per-tenant without leakage
+- Risks: Smoke test relies on public GET endpoints and dev data; not a substitute for full e2e
 ## Entry - planning docs
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Generated:
