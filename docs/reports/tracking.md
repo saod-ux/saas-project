@@ -58,6 +58,12 @@
 - Assumptions: continue using `e-viewstorage-public`; tenant isolation by `tenantId`; no schema migration needed immediately
 - Next immediate task: Centralize tenant resolution (slug→id) and remove demo-store special-case
 
+## Entry - T-012 CI workflow (typecheck, lint, tenant smoke)
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Scope: Add GitHub Actions workflow to run typecheck, lint, start dev, and run tenant isolation smoke
+- Changes:
+  - .github/workflows/ci.yml: node setup, install, `npm run test:typescript`, `next lint`, start dev and run `scripts/smoke-tenant-isolation.sh`
+- Risks: Dev server start timing; increased CI time; can optimize later
 ## Entry - T-008 Footer & bottom nav i18n
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Scope: Add bilingual (AR/EN) labels to mobile bottom nav and footer links/text

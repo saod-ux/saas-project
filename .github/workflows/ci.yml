@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, stabilize/** ]
+  pull_request:
+    branches: [ main, stabilize/** ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm i
+
+      - name: Typecheck
+        run: npm run test:typescript
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Start dev server
+        run: |
+          nohup npm run dev &
+          echo $! > dev.pid
+          sleep 6
+
+      - name: Smoke tenant isolation
+        env:
+          BASE_URL: http://localhost:3000
+        run: |
+          chmod +x scripts/smoke-tenant-isolation.sh
+          ./scripts/smoke-tenant-isolation.sh demo-store ssas
+
+      - name: Stop dev server
+        if: always()
+        run: |
+          if [ -f dev.pid ]; then kill $(cat dev.pid) || true; fi
+
+
