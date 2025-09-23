@@ -1,14 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
+  /* Infinite carousel specific styles */
+  .carousel-container {
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .carousel-item {
+    scroll-snap-align: center;
+  }
+  
+  /* Prevent text selection during drag */
+  .carousel-dragging {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    cursor: grabbing;
+  }
+  
+  /* Optimize carousel performance */
+  .carousel-track {
+    will-change: transform;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
+  
+  .carousel-pill {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+  
+  /* Ensure categories bar is always visible */
+  .categories-section {
+    position: relative;
+    z-index: 10;
+    background-color: rgb(249 250 251); /* bg-gray-50 */
+  }
+  
+  /* Prevent hero from overlapping categories */
+  .hero-section {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 /* CSS Variables for theme */
 :root {
-  --color-primary: #1F2937;
-  --color-accent: #111827;
-  --color-bg: #FAF7F2;
-  --color-card: #FFFFFF;
-  --color-text: #1F2937;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --ink: #0F172A;
+  --muted: #6B7280;
+  --primary: #0EA5E9;
+  --primary-ink: #0B4E6E;
+  --accent: #22C55E;
+  --border: #E5E7EB;
+  --danger: #EF4444;
+  --warn: #F59E0B;
+  --radius: 14px;
+  --shadow: 0 6px 20px rgba(15,23,42,0.06);
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Cairo", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+}
+
+/* Design System Classes */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  @apply px-4 py-2 rounded-lg font-semibold transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-[var(--primary)] text-white hover:bg-[var(--primary-ink)] focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2;
+}
+
+.btn-secondary {
+  @apply bg-[var(--muted)] text-white hover:bg-gray-600 focus:ring-2 focus:ring-[var(--muted)] focus:ring-offset-2;
+}
+
+.badge {
+  @apply px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800;
 }
 
 /* Line clamp utilities */
@@ -42,6 +151,9 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* Custom scrollbar for webkit browsers */
 .custom-scrollbar::-webkit-scrollbar {

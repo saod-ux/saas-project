@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/formatPrice'
 import { useCurrency } from '@/context/CurrencyContext'
+import { useLocale } from '@/components/providers/LocaleProvider'
 import { ShoppingCart, Eye } from 'lucide-react'
+import ThumbCard from '@/components/ui/ThumbCard'
 
 interface Product {
   id: string
@@ -16,34 +18,43 @@ interface Product {
   status: string
   hasVariants: boolean
   image: string | null
+  productImages: Array<{
+    id: string
+    order: number
+    file: {
+      id: string
+      key: string
+      bucket: string
+      path: string
+      publicUrl: string
+      filename: string
+      mimeType: string
+    }
+  }>
 }
 
 interface ProductCardProps {
   product: Product
+  tenantSlug: string
   onAddToCart?: (productId: string) => void
   onViewDetails?: (productId: string) => void
   loading?: boolean
+  tenantLogoUrl?: string | null
 }
 
 export default function ProductCard({ 
   product, 
+  tenantSlug,
   onAddToCart, 
   onViewDetails,
-  loading = false 
+  loading = false,
+  tenantLogoUrl
 }: ProductCardProps) {
   const { selectedCurrency, locale } = useCurrency()
-  const [imageError, setImageError] = useState(false)
-  const [imageLoading, setImageLoading] = useState(true)
+  const { t } = useLocale()
 
-  const handleImageLoad = () => {
-    setImageLoading(false)
-    setImageError(false)
-  }
-
-  const handleImageError = () => {
-    setImageLoading(false)
-    setImageError(true)
-  }
+  // Get the first product image as primary image
+  const primaryImage = product.productImages?.[0]?.file?.publicUrl || product.image
 
   const handleAddToCart = () => {
     if (onAddToCart) {
@@ -55,7 +66,7 @@ export default function ProductCard({
     if (onViewDetails) {
       onViewDetails(product.id)
     } else {
-      window.location.href = `/product/${product.id}`
+      window.location.href = `/${tenantSlug}/product/${product.id}`
     }
   }
 
@@ -64,30 +75,13 @@ export default function ProductCard({
   return (
     <div className="group bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden">
       {/* Product Image */}
-      <div className="aspect-square bg-gray-50 relative overflow-hidden">
-        {product.image && !imageError ? (
-          <>
-            {imageLoading && (
-              <div className="absolute inset-0 bg-gray-200 animate-pulse" />
-            )}
-            <img
-              src={`/api/v1/images/${encodeURIComponent(product.image)}`}
-              alt={product.title}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${
-                imageLoading ? 'opacity-0' : 'opacity-100'
-              }`}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
-          </>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-            <div className="text-center">
-              <div className="text-4xl text-gray-400 mb-2">📦</div>
-              <p className="text-xs text-gray-500">No Image</p>
-            </div>
-          </div>
-        )}
+      <div className="relative">
+        <ThumbCard
+          src={primaryImage}
+          alt={product.title}
+          fallbackSrc={tenantLogoUrl}
+          aspectRatio="square"
+        />
 
         {/* Quick Actions Overlay */}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
@@ -117,12 +111,12 @@ export default function ProductCard({
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {product.hasVariants && (
             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-              Options
+              {t('storefront.products.options')}
             </span>
           )}
           {isOutOfStock && (
             <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium">
-              Out of Stock
+              {t('storefront.products.outOfStock')}
             </span>
           )}
         </div>
@@ -159,7 +153,7 @@ export default function ProductCard({
               onClick={handleViewDetails}
               className="text-xs"
             >
-              View
+              {t('storefront.products.viewProduct')}
             </Button>
             {!isOutOfStock && (
               <Button
@@ -168,7 +162,7 @@ export default function ProductCard({
                 disabled={loading}
                 className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {loading ? 'Adding...' : 'Add to Cart'}
+                {loading ? t('common.loading') : t('storefront.products.addToCart')}
               </Button>
             )}
           </div>

@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getCurrentUser } from '@/lib/auth'
 
 // GET /api/v1/test-simple - Simple auth test
 export async function GET(request: NextRequest) {
   try {
-    const clerkAuth = await auth()
+    const user = await getCurrentUser()
     
     return NextResponse.json({
       success: true,
-      clerkAuth: {
-        userId: clerkAuth.userId,
-        sessionId: clerkAuth.sessionId,
-        actor: clerkAuth.actor,
-        sessionClaims: clerkAuth.sessionClaims
-      },
-      headers: {
-        host: request.headers.get('host'),
-        'x-tenant-slug': request.headers.get('x-tenant-slug')
-      }
+      user: user,
+      authenticated: !!user
     })
     
   } catch (error: any) {

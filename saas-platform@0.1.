@@ -1,0 +1,58 @@
+> saas-platform@0.1.0 dev
+> next dev -p 3000
+
+ ⨯ Failed to start s
+ ⨯ Failed to start server
+Error: listen EADDRI
+Error: listen EADDRINUSE: address alread
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupL
+    at Server.setupListenHandle [as _lis
+    at Server.setupListenHandle [as _listen2] (node:net:1939
+    at Server.setupListenHandle [as _listen2] (node:net:1939:16)
+    at listenInClust
+    at listenInCluster (node:net:1996:12
+    at listenInCluster (node:net:1996:12)
+    at Server.listen
+    at Server.listen (node:net:2101:7)
+    at /Users/saud/D
+    at /Users/saud/Desktop/saas-project/
+    at /Users/saud/Desktop/saas-project/node_modules/next/di
+    at /Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start-
+    at /Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start-server.js:279:16
+    at new Promise (
+    at new Promise (<anonymous>)
+    at startServer (
+    at startServer (/Users/saud/Desktop/
+    at startServer (/Users/saud/Desktop/saas-project/node_mo
+    at startServer (/Users/saud/Desktop/saas-project/node_modules/next/dist/serv
+    at startServer (/Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start-server.
+    at startServer (/Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start-server.js:190:11)
+    at /Users/saud/D
+    at /Users/saud/Desktop/saas-project/
+    at /Users/saud/Desktop/saas-project/node_modules/next/di
+    at /Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start-
+    at /Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start-server.js:309:52
+    at Span.traceAsy
+    at Span.traceAsyncFn (/Users/saud/De
+    at Span.traceAsyncFn (/Users/saud/Desktop/saas-project/n
+    at Span.traceAsyncFn (/Users/saud/Desktop/saas-project/node_modules/next/dis
+    at Span.traceAsyncFn (/Users/saud/Desktop/saas-project/node_modules/next/dist/trace/trace.js:147
+    at Span.traceAsyncFn (/Users/saud/Desktop/saas-project/node_modules/next/dist/trace/trace.js:147:26)
+    at process.<anon
+    at process.<anonymous> (/Users/saud/
+    at process.<anonymous> (/Users/saud/Desktop/saas-project
+    at process.<anonymous> (/Users/saud/Desktop/saas-project/node_modules/next/d
+    at process.<anonymous> (/Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start
+    at process.<anonymous> (/Users/saud/Desktop/saas-project/node_modules/next/dist/server/lib/start-server.js:309:35)
+    at process.emit 
+    at process.emit (node:events:518:28)
+    at process.emit (node:events:518:28) {
+  code: 'EADDRINUSE'
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+npm run dev

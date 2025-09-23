@@ -1,7 +1,7 @@
 export function formatPrice(
   amount: number,
   currency: string = 'KWD',
-  locale: 'ar-KW' | 'en-US' = 'en-US'
+  locale: string = 'en-US'
 ): string {
   try {
     return new Intl.NumberFormat(locale, {
@@ -14,6 +14,15 @@ export function formatPrice(
     // Fallback formatting
     return `${currency} ${amount.toFixed(2)}`
   }
+}
+
+// Enhanced money formatter that uses tenant settings
+export function formatMoney(
+  value: number,
+  currency: string,
+  locale: string
+): string {
+  return formatPrice(value, currency, locale);
 }
 
 export function formatPriceRange(

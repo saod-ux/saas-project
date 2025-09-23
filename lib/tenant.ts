@@ -1,4 +1,5 @@
-import { prisma } from './db'
+import { getTenantBySlug, getTenantById, updateTenant } from './firebase/tenant'
+import { getTenantDocuments, COLLECTIONS } from './db'
 
 export interface TenantInfo {
   id: string
@@ -6,62 +7,25 @@ export interface TenantInfo {
   slug: string
   domain?: string | null
   settingsJson: any
+  // Payment fields from Firestore
+  myfatoorahApiKey?: string | null
+  myfatoorahSecretKey?: string | null
+  myfatoorahIsTest?: boolean
+  knetMerchantId?: string | null
+  knetApiKey?: string | null
+  knetIsTest?: boolean
+  stripePublishableKey?: string | null
+  stripeSecretKey?: string | null
+  stripeIsTest?: boolean
+  settingsVersion?: number
 }
 
-// Extract tenant slug from hostname
-export function extractTenantSlug(host: string): string | null {
-  const hostname = (host || '').split(':')[0].toLowerCase()
-  if (!hostname) return null
-
-  const parts = hostname.split('.')
-
-  // Handle dev subdomains like acme.localhost or moka.localhost
-  const isLocalhost = parts.includes('localhost')
-  if (isLocalhost && parts.length >= 2) {
-    return parts[0] || null
-  }
-
-  // If custom domain (no subdomain), return null so we resolve by domain
-  if (parts.length === 2) {
-    return null
-  }
-
-  // For domains like tenant.yourapp.com (3+ parts), use first segment
-  if (parts.length >= 3) {
-    return parts[0]
-  }
-
-  return null
-}
-
-// Resolve tenant by slug or domain
-export async function resolveTenant(host: string): Promise<TenantInfo | null> {
-  const hostname = (host || '').split(':')[0].toLowerCase()
-  const tenantSlug = extractTenantSlug(hostname)
-  
-  if (!tenantSlug) {
-    // Try to find by custom domain
-    const tenant = await prisma.tenant.findFirst({
-      where: {
-        domain: hostname
-      }
-    })
-    return tenant
-  }
-  
-  // Find by slug
-  const tenant = await prisma.tenant.findUnique({
-    where: {
-      slug: tenantSlug
-    }
-  })
-  
-  return tenant
-}
+// Note: Custom domain resolution is now handled via /api/_domain-lookup
+// to avoid Firestore usage in Edge runtime middleware
 
 export async function resolveTenantBySlug(slug: string): Promise<TenantInfo | null> {
   if (!slug) return null
-  const tenant = await prisma.tenant.findUnique({ where: { slug: slug.toLowerCase() } })
+  const tenant = await getTenantBySlug(slug.toLowerCase())
   return tenant
 }
 
@@ -70,30 +34,17 @@ export async function validateTenantAccess(tenantId: string, userId?: string): P
     return true
   }
   
-  const membership = await prisma.membership.findUnique({
-    where: {
-      tenantId_userId: {
-        tenantId,
-        userId
-      }
-    }
-  })
+  const memberships = await getTenantDocuments(COLLECTIONS.MEMBERSHIPS, tenantId)
+  const membership = memberships.find(m => m.userId === userId)
   
   return !!membership
 }
 
 export async function getTenantSettings(tenantId: string): Promise<any> {
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { settingsJson: true }
-  })
-  
+  const tenant = await getTenantById(tenantId)
   return tenant?.settingsJson || {}
 }
 
 export async function updateTenantSettings(tenantId: string, settings: any): Promise<void> {
-  await prisma.tenant.update({
-    where: { id: tenantId },
-    data: { settingsJson: settings }
-  })
+  await updateTenant(tenantId, { settingsJson: settings })
 }

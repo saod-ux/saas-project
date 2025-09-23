@@ -47,12 +47,12 @@ export async function POST(request: NextRequest) {
       await prismaRW.payment.update({
         where: { id: payment.id },
         data: {
-          status: validatedData.status === 'success' ? 'completed' : 'failed',
-          metadata: {
-            ...payment.metadata,
-            webhookData: validatedData,
-            processedAt: new Date().toISOString(),
-          }
+          status: validatedData.status === 'success' ? 'SUCCEEDED' : 'FAILED',
+          rawPayload: {
+              ...(payment.rawPayload as any || {}),
+              webhookData: validatedData,
+              processedAt: new Date().toISOString(),
+            }
         }
       })
     }
@@ -62,12 +62,7 @@ export async function POST(request: NextRequest) {
       await prismaRW.order.update({
         where: { id: order.id },
         data: {
-          status: 'paid',
-          metadata: {
-            ...order.metadata,
-            paymentConfirmedAt: new Date().toISOString(),
-            transactionId: validatedData.transactionId,
-          }
+          status: 'CONFIRMED'
         }
       })
 
@@ -82,12 +77,7 @@ export async function POST(request: NextRequest) {
       await prismaRW.order.update({
         where: { id: order.id },
         data: {
-          status: 'payment_failed',
-          metadata: {
-            ...order.metadata,
-            paymentFailedAt: new Date().toISOString(),
-            failureReason: 'Payment gateway returned failed status',
-          }
+          status: 'CANCELLED'
         }
       })
 

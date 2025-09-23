@@ -1,6 +1,7 @@
 'use client'
 
 import { useTenantTheme } from '@/providers/TenantThemeProvider'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 interface CategoryChipsProps {
   categories: string[]
@@ -16,6 +17,7 @@ export default function CategoryChips({
   loading = false
 }: CategoryChipsProps) {
   const { theme } = useTenantTheme()
+  const { t } = useLocale()
 
   if (loading) {
     return (
@@ -57,7 +59,7 @@ export default function CategoryChips({
                 border: selectedCategory === category ? 'none' : `1px solid ${theme.primary}20`,
               }}
             >
-              {category === 'all' ? 'All Products' : category}
+              {category === 'all' ? t('storefront.categories.all') : category}
             </button>
           ))}
         </div>

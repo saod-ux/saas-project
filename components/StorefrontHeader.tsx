@@ -5,14 +5,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ShoppingCart, Search, Menu, X } from 'lucide-react'
 import { useTenantTheme } from '@/providers/TenantThemeProvider'
+import { useLocale } from './providers/LocaleProvider'
+import LanguageSwitcher from './LanguageSwitcher'
 
 interface StorefrontHeaderProps {
+  
   storeName: string
   logoUrl?: string
   cartCount: number
   onSearch: (term: string) => void
   onCartClick: () => void
   onCheckoutClick: () => void
+  onRefresh?: () => void
 }
 
 export default function StorefrontHeader({
@@ -21,9 +25,11 @@ export default function StorefrontHeader({
   cartCount,
   onSearch,
   onCartClick,
-  onCheckoutClick
+  onCheckoutClick,
+  onRefresh
 }: StorefrontHeaderProps) {
   const { theme } = useTenantTheme()
+  const { locale, direction, t } = useLocale()
   const [searchTerm, setSearchTerm] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -52,6 +58,7 @@ export default function StorefrontHeader({
         isScrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-white'
       }`}
       style={{ borderBottomColor: theme.primary + '20' }}
+      dir={direction}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -77,13 +84,13 @@ export default function StorefrontHeader({
           {/* Desktop Search */}
           <div className="hidden md:flex flex-1 max-w-lg mx-8">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className={`absolute ${direction === 'rtl' ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4`} />
               <Input
                 type="text"
-                placeholder="Search products..."
+                placeholder={t('storefront.products.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className={direction === 'rtl' ? 'pr-10' : 'pl-10'}
                 style={{ 
                   backgroundColor: theme.card,
                   borderColor: theme.primary + '20',
@@ -95,6 +102,22 @@ export default function StorefrontHeader({
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-3">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+            
+            {onRefresh && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                style={{ 
+                  borderColor: theme.primary + '20',
+                  color: theme.primary
+                }}
+              >
+                🔄 {t('common.refresh')}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={onCartClick}
@@ -105,7 +128,7 @@ export default function StorefrontHeader({
               }}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              Cart
+              {t('navigation.cart')}
               {cartCount > 0 && (
                 <span 
                   className="absolute -top-2 -right-2 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
@@ -124,7 +147,7 @@ export default function StorefrontHeader({
               }}
               className="hover:opacity-90"
             >
-              Checkout
+              {t('navigation.checkout')}
             </Button>
           </div>
 
@@ -147,13 +170,13 @@ export default function StorefrontHeader({
         {/* Mobile Search */}
         <div className="md:hidden pb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className={`absolute ${direction === 'rtl' ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4`} />
             <Input
               type="text"
-              placeholder="Search products..."
+              placeholder={t('storefront.products.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className={direction === 'rtl' ? 'pr-10' : 'pl-10'}
               style={{ 
                 backgroundColor: theme.card,
                 borderColor: theme.primary + '20',
@@ -167,6 +190,11 @@ export default function StorefrontHeader({
         {mobileMenuOpen && (
           <div className="md:hidden border-t py-4" style={{ borderColor: theme.primary + '20' }}>
             <div className="flex flex-col space-y-3">
+              {/* Mobile Language Switcher */}
+              <div className="flex justify-center pb-2">
+                <LanguageSwitcher />
+              </div>
+              
               <Button
                 variant="outline"
                 onClick={onCartClick}
@@ -177,7 +205,7 @@ export default function StorefrontHeader({
                 }}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                Cart
+                {t('navigation.cart')}
                 {cartCount > 0 && (
                   <span 
                     className="ml-auto text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
@@ -196,7 +224,7 @@ export default function StorefrontHeader({
                   color: '#FFFFFF'
                 }}
               >
-                Checkout
+                {t('navigation.checkout')}
               </Button>
             </div>
           </div>

@@ -34,9 +34,9 @@ const defaultTheme: TenantTheme = {
   card: '#FFFFFF',
   text: '#1F2937',
   showHero: true,
-  heroTitle: 'Welcome to Our Store',
-  heroSubtitle: 'Discover amazing products at great prices',
-  heroCtaLabel: 'Shop Now',
+          heroTitle: '',
+          heroSubtitle: '',
+          heroCtaLabel: '',
   heroCtaHref: '#products',
   direction: 'ltr',
   locale: 'en-US',
@@ -63,14 +63,14 @@ export function TenantThemeProvider({
     setThemeState(prev => ({ ...prev, ...newTheme }))
   }
 
-  // Load theme from settings if tenantSlug is provided
+  // Load theme from settings
   useEffect(() => {
-    if (!tenantSlug) {
-      setLoading(false)
-      return
-    }
-
     async function loadTheme() {
+      if (!tenantSlug) {
+        setLoading(false)
+        return
+      }
+      
       try {
         const response = await fetch('/api/v1/settings', {
           headers: {
@@ -84,20 +84,20 @@ export function TenantThemeProvider({
           
           // Extract theme from settings
           const themeFromSettings: TenantTheme = {
-            primary: settings.primary || defaultTheme.primary,
-            accent: settings.accent || defaultTheme.accent,
-            bg: settings.bg || defaultTheme.bg,
-            card: settings.card || defaultTheme.card,
-            text: settings.text || defaultTheme.text,
-            logoUrl: settings.logoUrl,
-            showHero: settings.showHero ?? defaultTheme.showHero,
-            heroTitle: settings.heroTitle || defaultTheme.heroTitle,
-            heroSubtitle: settings.heroSubtitle || defaultTheme.heroSubtitle,
-            heroCtaLabel: settings.heroCtaLabel || defaultTheme.heroCtaLabel,
-            heroCtaHref: settings.heroCtaHref || defaultTheme.heroCtaHref,
-            heroImageUrl: settings.heroImageUrl,
-            direction: settings.direction || defaultTheme.direction,
-            locale: settings.locale || defaultTheme.locale,
+            primary: settings.storefront?.theme?.primary || defaultTheme.primary,
+            accent: settings.storefront?.theme?.accent || defaultTheme.accent,
+            bg: settings.storefront?.theme?.bg || defaultTheme.bg,
+            card: settings.storefront?.theme?.card || defaultTheme.card,
+            text: settings.storefront?.theme?.text || defaultTheme.text,
+            logoUrl: settings.storefront?.theme?.logoUrl,
+            showHero: settings.storefront?.hero?.showHero ?? defaultTheme.showHero,
+            heroTitle: settings.storefront?.hero?.heroTitle || defaultTheme.heroTitle,
+            heroSubtitle: settings.storefront?.hero?.heroSubtitle || defaultTheme.heroSubtitle,
+            heroCtaLabel: settings.storefront?.hero?.heroCtaLabel || defaultTheme.heroCtaLabel,
+            heroCtaHref: settings.storefront?.hero?.heroCtaHref || defaultTheme.heroCtaHref,
+            heroImageUrl: settings.storefront?.hero?.heroImageUrl,
+            direction: settings.storefront?.localization?.direction || defaultTheme.direction,
+            locale: settings.storefront?.localization?.locale || defaultTheme.locale,
           }
           
           setThemeState(themeFromSettings)
@@ -109,7 +109,7 @@ export function TenantThemeProvider({
         setLoading(false)
       }
     }
-
+    
     loadTheme()
   }, [tenantSlug])
 

@@ -141,8 +141,7 @@ export default function Footer({ tenantSlug, tenant, platformContent }: FooterPr
 
   // Helper function to get social media URL with proper fallback logic
   const getSocialUrl = (platform: string) => {
-    const tenantUrl = tenant?.settings?.social?.[platform as keyof typeof tenant.settings.social] || 
-                     tenant?.settingsJson?.social?.[platform as keyof typeof tenant.settingsJson.social];
+    const tenantUrl = tenant?.settings?.social?.[platform as keyof typeof tenant.settings.social];
     
     // If tenant has a URL (even if empty), use it (formatUrl will return null for empty strings)
     if (tenantUrl !== undefined) {
