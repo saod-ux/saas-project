@@ -32,6 +32,14 @@
   - docs/reports/current-state.md
   - docs/reports/artifacts/README.md
 
+## Entry - T-011 Centralize tenant resolver usage
+- Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
+- Scope: Replace direct Firestore slug queries with `getTenantBySlug` in remaining API utilities
+- Changes:
+  - app/api/debug-direct-check/route.ts: use getTenantBySlug and doc-by-id ops
+  - app/api/debug-firestore-update/route.ts: use getTenantBySlug and doc-by-id ops
+- Verifications: Endpoints still function for test/debug; tenantId sourced from centralized resolver
+- Risks: None for production code; these are debug endpoints
 ## Entry - T-007 Tenant isolation smoke tests
 - Timestamp: 2025-09-23T00:00:00Z (replace with actual local time)
 - Scope: Add script to verify per-tenant media isolation via public APIs
