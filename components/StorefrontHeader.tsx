@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ShoppingCart, Search, Menu, X } from 'lucide-react'
@@ -65,9 +66,11 @@ export default function StorefrontHeader({
           {/* Logo/Store Name */}
           <div className="flex items-center">
             {logoUrl ? (
-              <img
+              <Image
                 src={logoUrl}
                 alt={storeName}
+                width={120}
+                height={32}
                 className="h-8 w-auto"
                 style={{ maxWidth: '120px' }}
               />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -375,7 +376,7 @@ export function ProductDrawer({ isOpen, onClose, onSuccess, categories, tenantSl
             />
             {form.imageUrl && (
               <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
-                <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <Image src={form.imageUrl} alt="Preview" width={128} height={128} className="w-full h-full object-cover" />
               </div>
             )}
             {uploading && (
@@ -410,7 +411,7 @@ export function ProductDrawer({ isOpen, onClose, onSuccess, categories, tenantSl
               <div className="grid grid-cols-3 gap-2">
                 {form.gallery.map((url, index) => (
                   <div key={index} className="relative w-20 h-20 border rounded-lg overflow-hidden">
-                    <img src={url} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover" />
+                    <Image src={url} alt={`Gallery ${index + 1}`} width={80} height={80} className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => removeGalleryImage(index)}

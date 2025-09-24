@@ -127,7 +127,7 @@ export default function CheckoutPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-4">
-                Thank you for your order. We'll send you a confirmation email shortly.
+                Thank you for your order. We&apos;ll send you a confirmation email shortly.
               </p>
               <Button onClick={() => window.location.href = '/'}>
                 Continue Shopping

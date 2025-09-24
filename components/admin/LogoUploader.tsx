@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Check } from "lucide-react";
 
@@ -125,9 +126,11 @@ export default function LogoUploader({
         <p className="mb-2 text-sm text-muted-foreground">Logo</p>
         {currentLogoUrl ? (
           <div className="flex items-center gap-4">
-            <img 
+            <Image 
               src={currentLogoUrl} 
               alt="Current logo" 
+              width={64}
+              height={64}
               className="h-16 w-16 rounded object-contain bg-muted border" 
             />
             <Button

@@ -22,7 +22,7 @@ export function NotFoundPanel({
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{message}</h1>
           <p className="text-gray-600">
-            The store you're looking for doesn't exist or may have been moved.
+            The store you&apos;re looking for doesn&apos;t exist or may have been moved.
           </p>
         </div>
         

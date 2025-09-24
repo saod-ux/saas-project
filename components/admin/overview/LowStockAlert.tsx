@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Package } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { getTranslations } from "@/lib/i18n";
 
 interface LowStockProduct {
@@ -58,9 +59,11 @@ export async function LowStockAlert({ products, tenantSlug, locale = "en" }: Low
             <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
               <div className="flex items-center gap-3">
                 {product.imageUrl ? (
-                  <img
+                  <Image
                     src={product.imageUrl}
                     alt={product.title}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded object-cover"
                   />
                 ) : (

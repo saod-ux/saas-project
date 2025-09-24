@@ -44,28 +44,28 @@ export default function OrderPage() {
 
   // Load order data
   useEffect(() => {
-    loadOrder()
-  }, [tenantSlug, orderId])
-
-  const loadOrder = async () => {
-    try {
-      const response = await fetch(`/api/storefront/${tenantSlug}/order/${orderId}`)
-      const data = await response.json()
-      
-      if (data.ok) {
-        setOrder(data.data)
-      } else {
-        toast.error(data.error || 'Order not found')
+    const loadOrder = async () => {
+      try {
+        const response = await fetch(`/api/storefront/${tenantSlug}/order/${orderId}`)
+        const data = await response.json()
+        
+        if (data.ok) {
+          setOrder(data.data)
+        } else {
+          toast.error(data.error || 'Order not found')
+          router.push(`/${tenantSlug}`)
+        }
+      } catch (error) {
+        console.error('Error loading order:', error)
+        toast.error('Failed to load order')
         router.push(`/${tenantSlug}`)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Error loading order:', error)
-      toast.error('Failed to load order')
-      router.push(`/${tenantSlug}`)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    loadOrder()
+  }, [tenantSlug, orderId, router])
 
   // Get status badge
   const getStatusBadge = (status: string) => {
@@ -114,7 +114,7 @@ export default function OrderPage() {
         <div className="text-center">
           <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
           <h1 className="text-2xl font-bold mb-2">Order not found</h1>
-          <p className="text-gray-600 mb-4">The order you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-4">The order you&apos;re looking for doesn&apos;t exist.</p>
           <Button onClick={() => router.push(`/${tenantSlug}`)}>
             Continue Shopping
           </Button>

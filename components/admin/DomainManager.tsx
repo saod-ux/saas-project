@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -71,11 +71,7 @@ export default function DomainManager({ tenantSlug }: DomainManagerProps) {
   const [newDomain, setNewDomain] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchDomains()
-  }, [])
-
-  const fetchDomains = async () => {
+  const fetchDomains = useCallback(async () => {
     try {
       const response = await fetch(`/api/admin/${tenantSlug}/domains`)
       const data = await response.json()
@@ -88,7 +84,11 @@ export default function DomainManager({ tenantSlug }: DomainManagerProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [tenantSlug])
+
+  useEffect(() => {
+    fetchDomains()
+  }, [tenantSlug, fetchDomains])
 
   const handleAddDomain = async () => {
     if (!newDomain.trim()) return
@@ -216,7 +216,7 @@ export default function DomainManager({ tenantSlug }: DomainManagerProps) {
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    After adding the domain, you'll need to configure DNS records to verify ownership.
+                    After adding the domain, you&apos;ll need to configure DNS records to verify ownership.
                   </AlertDescription>
                 </Alert>
               </div>

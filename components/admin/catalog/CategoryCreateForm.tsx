@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -215,9 +216,11 @@ export function CategoryCreateForm({ onSubmit, onError, initialData, isEditing =
         <div className="max-w-md">
           {form.imageUrl ? (
             <div className="relative group">
-              <img
+              <Image
                 src={form.imageUrl}
                 alt="Category preview"
+                width={400}
+                height={192}
                 className="w-full h-48 object-cover rounded-lg border border-gray-200"
               />
               <Button

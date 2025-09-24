@@ -242,7 +242,7 @@ export default function DomainManager() {
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      After adding the domain, you'll need to configure DNS records to verify ownership.
+                      After adding the domain, you&apos;ll need to configure DNS records to verify ownership.
                     </AlertDescription>
                   </Alert>
                 </div>

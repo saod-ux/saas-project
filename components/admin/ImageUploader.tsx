@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
 // import { createSasForUpload } from "@/lib/upload"; // Function not available
 
@@ -132,9 +133,11 @@ export default function ImageUploader({
           {images.map((image, index) => (
             <div key={index} className="relative group">
               <div className="aspect-square rounded-lg overflow-hidden border">
-                <img
+                <Image
                   src={image}
                   alt={`Product image ${index + 1}`}
+                  width={200}
+                  height={200}
                   className="w-full h-full object-cover"
                 />
               </div>

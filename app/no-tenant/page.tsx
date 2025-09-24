@@ -33,7 +33,7 @@ export default function NoTenantPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="font-semibold text-blue-900 mb-2">How to Access a Store</h3>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Use the tenant's custom domain (e.g., <code>acme.com</code>)</li>
+                <li>• Use the tenant&apos;s custom domain (e.g., <code>acme.com</code>)</li>
                 <li>• In development, use <code>?tenant=acme</code> parameter</li>
                 <li>• Contact your administrator to set up a custom domain</li>
               </ul>

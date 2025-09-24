@@ -224,7 +224,7 @@ export default function ProductImagesManager({
       <div className="text-sm text-gray-500">
         <p>• Drag images to reorder them</p>
         <p>• The first image is automatically set as primary</p>
-        <p>• Click "Set Primary" to change the main product image</p>
+        <p>• Click &quot;Set Primary&quot; to change the main product image</p>
       </div>
     </div>
   );

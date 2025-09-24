@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import HeroMediaManager from "@/components/admin/HeroMediaManager";
 import LogoUploader from "@/components/admin/LogoUploader";
 import { PageHelp } from "@/components/admin/PageHelp";
@@ -34,7 +35,7 @@ export default function AppearancePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetchAppearance = async () => {
+  const fetchAppearance = useCallback(async () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       const res = await fetch(`${baseUrl}/api/admin/${tenantSlug}/appearance`, {
@@ -65,11 +66,11 @@ export default function AppearancePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantSlug]);
 
   useEffect(() => {
     fetchAppearance();
-  }, [tenantSlug]);
+  }, [tenantSlug, fetchAppearance]);
 
   // Use safe defaults in the UI
   const logoUrl = appearance.logoUrl ?? "";
@@ -173,9 +174,11 @@ export default function AppearancePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {heroImages.map((url, idx) => (
               <div key={idx} className="relative group">
-                <img 
+                <Image 
                   src={url} 
                   alt={`Hero ${idx + 1}`} 
+                  width={300}
+                  height={128}
                   className="h-32 w-full rounded-lg object-cover bg-gray-100" 
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">

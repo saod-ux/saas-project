@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
@@ -58,9 +59,11 @@ export default function AdminNavigation({ tenantSlug, tenantName, logoUrl }: Adm
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
             {logoUrl ? (
-              <img 
+              <Image 
                 src={logoUrl} 
                 alt={tenantName} 
+                width={40}
+                height={40}
                 className="w-full h-full object-contain"
               />
             ) : (

@@ -2,6 +2,7 @@ import { getTenantBySlug } from "@/lib/firebase/tenant";
 import { getAllDocuments, COLLECTIONS } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import ThumbCard from "@/components/ui/ThumbCard";
 import SlidableCategories from "@/components/store/SlidableCategories";
 import { getServerDb } from "@/lib/firebase/db";
@@ -97,9 +98,11 @@ export default async function RetailPage({ params }:{
               // Single image/video
               <div className="relative w-full h-full">
                 {heroSlides[0].type === "image" ? (
-                  <img
+                  <Image
                     src={heroSlides[0].url}
                     alt="Hero"
+                    width={800}
+                    height={400}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -128,9 +131,11 @@ export default async function RetailPage({ params }:{
                       }`}
                     >
                       {slide.type === "image" ? (
-                        <img
+                        <Image
                           src={slide.url}
                           alt={`Hero ${index + 1}`}
+                          width={800}
+                          height={400}
                           className="w-full h-full object-cover"
                         />
                       ) : (

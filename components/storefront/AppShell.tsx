@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, ShoppingCart, User, Menu, Home, MoreHorizontal } from 'lucide-react'
@@ -55,7 +56,7 @@ export function AppShell({
                 className="flex items-center space-x-2"
               >
                 {logoUrl ? (
-                  <img src={logoUrl} alt={tenantName} className="h-8 w-auto" />
+                  <Image src={logoUrl} alt={tenantName} width={120} height={32} className="h-8 w-auto" />
                 ) : (
                   <span className="text-xl font-bold text-gray-900">{tenantName}</span>
                 )}

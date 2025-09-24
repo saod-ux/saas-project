@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { PageHelp } from "@/components/admin/PageHelp";
 
 interface Category {
@@ -25,24 +26,24 @@ export default function Categories() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`/api/admin/${tenantSlug}/categories`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (data.ok) {
-        setCategories(data.data);
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`/api/admin/${tenantSlug}/categories`, {
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (data.ok) {
+          setCategories(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchCategories();
+  }, [tenantSlug]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذه الفئة؟")) return;
@@ -107,9 +108,11 @@ export default function Categories() {
               {/* Category Image */}
               <div className="h-48 bg-gray-100 relative">
                 {category.imageUrl ? (
-                  <img 
+                  <Image 
                     src={category.imageUrl} 
                     alt={category.name}
+                    width={300}
+                    height={192}
                     className="w-full h-full object-cover"
                   />
                 ) : (

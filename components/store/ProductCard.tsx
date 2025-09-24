@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Clock, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,11 @@ export default function ProductCard({ product, onAddToCart, onBuyNow }: ProductC
       {/* Product Image */}
       <div className="relative aspect-square bg-gray-50">
         {product.imageUrl ? (
-          <img
+          <Image
             src={product.imageUrl}
             alt={displayName}
+            width={200}
+            height={200}
             className="w-full h-full object-cover"
           />
         ) : (

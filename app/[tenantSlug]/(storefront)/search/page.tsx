@@ -93,7 +93,7 @@ function SearchPageContent({
         {query && (
           <div>
             <p className="text-gray-600 mb-4">
-              {results.length} results for "{query}"
+              {results.length} results for &quot;{query}&quot;
             </p>
             
             {results.length > 0 ? (

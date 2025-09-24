@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { PageHelp } from "@/components/admin/PageHelp";
 
 interface Product {
@@ -32,24 +33,24 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch(`/api/admin/${tenantSlug}/products`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (data.ok) {
-        setProducts(data.data);
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch(`/api/admin/${tenantSlug}/products`, {
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (data.ok) {
+          setProducts(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchProducts();
+  }, [tenantSlug]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
@@ -98,9 +99,11 @@ export default function Products() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-neutral-200 overflow-hidden">
                   {product.imageUrl ? (
-                    <img
+                    <Image
                       src={product.imageUrl}
                       alt={product.title}
+                      width={48}
+                      height={48}
                       className="w-full h-full object-cover"
                     />
                   ) : (

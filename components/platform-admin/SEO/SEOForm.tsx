@@ -143,6 +143,7 @@ export default function SEOForm({ tenant, initialData }: SEOFormProps) {
       {/* OpenGraph Image */}
       <div className="space-y-2">
         <label className="flex items-center text-sm font-medium text-gray-700">
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image className="h-4 w-4 mr-2" />
           OpenGraph Image URL
         </label>

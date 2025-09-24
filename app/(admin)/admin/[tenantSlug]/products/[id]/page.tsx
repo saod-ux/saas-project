@@ -43,44 +43,44 @@ export default function EditProduct() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`/api/admin/${tenantSlug}/products/${id}`, {
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (data.ok) {
+          setProduct(data.data);
+        } else {
+          alert(data.error || "Failed to fetch product");
+          router.back();
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        alert("Failed to fetch product");
+        router.back();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`/api/admin/${tenantSlug}/categories`, {
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (data.ok) {
+          setCategories(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
     fetchProduct();
     fetchCategories();
-  }, [id]);
-
-  const fetchProduct = async () => {
-    try {
-      const response = await fetch(`/api/admin/${tenantSlug}/products/${id}`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (data.ok) {
-        setProduct(data.data);
-      } else {
-        alert(data.error || "Failed to fetch product");
-        router.back();
-      }
-    } catch (error) {
-      console.error("Error fetching product:", error);
-      alert("Failed to fetch product");
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`/api/admin/${tenantSlug}/categories`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (data.ok) {
-        setCategories(data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
+  }, [id, tenantSlug, router]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

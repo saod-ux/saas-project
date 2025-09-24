@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { PageHelp } from "@/components/admin/PageHelp";
 
 interface Category {
@@ -25,35 +26,35 @@ export default function EditCategory() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchCategory();
-  }, [id]);
-
-  const fetchCategory = async () => {
-    try {
-      const response = await fetch(`/api/admin/${tenantSlug}/categories/${id}`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (data.ok) {
-        // Convert null values to empty strings for form handling
-        const categoryData = {
-          ...data.data,
-          description: data.data.description || "",
-          imageUrl: data.data.imageUrl || ""
-        };
-        setCategory(categoryData);
-      } else {
-        alert(data.error || "Failed to fetch category");
+    const fetchCategory = async () => {
+      try {
+        const response = await fetch(`/api/admin/${tenantSlug}/categories/${id}`, {
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (data.ok) {
+          // Convert null values to empty strings for form handling
+          const categoryData = {
+            ...data.data,
+            description: data.data.description || "",
+            imageUrl: data.data.imageUrl || ""
+          };
+          setCategory(categoryData);
+        } else {
+          alert(data.error || "Failed to fetch category");
+          router.back();
+        }
+      } catch (error) {
+        console.error("Error fetching category:", error);
+        alert("Failed to fetch category");
         router.back();
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching category:", error);
-      alert("Failed to fetch category");
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchCategory();
+  }, [id, tenantSlug, router]);
 
   // Generate slug from name, handling both English and Arabic text
   const generateSlug = (name: string) => {
@@ -235,9 +236,11 @@ export default function EditCategory() {
           <div className="flex items-center gap-4">
             {category.imageUrl ? (
               <div className="w-20 h-20 rounded-lg bg-neutral-200 overflow-hidden">
-                <img
+                <Image
                   src={category.imageUrl}
                   alt={category.name}
+                  width={80}
+                  height={80}
                   className="w-full h-full object-cover"
                 />
               </div>

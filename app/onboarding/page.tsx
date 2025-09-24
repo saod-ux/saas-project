@@ -92,7 +92,7 @@ export default function OnboardingPage() {
             <CardHeader>
               <CardTitle>Store Information</CardTitle>
               <CardDescription>
-                Let's start by setting up your store details
+                Let&apos;s start by setting up your store details
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -121,7 +121,7 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    This will be your store's unique URL. Only letters, numbers, and hyphens allowed.
+                    This will be your store&apos;s unique URL. Only letters, numbers, and hyphens allowed.
                   </p>
                 </div>
               </div>
@@ -224,7 +224,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome!</h1>
-          <p className="text-gray-600">Let's set up your store in just a few steps</p>
+          <p className="text-gray-600">Let&apos;s set up your store in just a few steps</p>
         </div>
 
         {/* Progress indicator */}

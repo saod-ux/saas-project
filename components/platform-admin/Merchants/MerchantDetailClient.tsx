@@ -227,7 +227,7 @@ export default function MerchantDetailClient({ tenant }: MerchantDetailClientPro
             <CardHeader>
               <CardTitle>Hero Section Override</CardTitle>
               <CardDescription>
-                Override the hero section for this merchant's storefront. When disabled, the storefront will show image-only hero.
+                Override the hero section for this merchant&apos;s storefront. When disabled, the storefront will show image-only hero.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -426,7 +426,7 @@ export default function MerchantDetailClient({ tenant }: MerchantDetailClientPro
             <CardHeader>
               <CardTitle>Content Preview</CardTitle>
               <CardDescription>
-                Preview how the content will appear on {tenant.name}'s storefront
+                Preview how the content will appear on {tenant.name}&apos;s storefront
               </CardDescription>
             </CardHeader>
             <CardContent>

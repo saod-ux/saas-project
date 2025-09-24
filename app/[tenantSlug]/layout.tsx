@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import Image from "next/image";
 import { getTenantBySlug } from "@/lib/firebase/tenant";
 import { getServerDb } from "@/lib/firebase/db";
 import Footer from "@/components/store/Footer";
@@ -130,9 +131,11 @@ export default async function TenantLayout({ params, children }:{
                   aria-label={tenantSlug}
                 >
                   {freshLogoUrl ? (
-                    <img 
+                    <Image 
                       src={freshLogoUrl} 
                       alt={tenant.name || tenantSlug} 
+                      width={120}
+                      height={40}
                       className="w-full h-full object-contain"
                     />
                   ) : (

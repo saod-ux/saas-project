@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -364,7 +365,7 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
           />
           {form.imageUrl && (
             <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
-              <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+              <Image src={form.imageUrl} alt="Preview" width={128} height={128} className="w-full h-full object-cover" />
             </div>
           )}
           {uploading && (
@@ -399,7 +400,7 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
             <div className="grid grid-cols-3 gap-2">
               {form.gallery.map((url, index) => (
                 <div key={index} className="relative w-20 h-20 border rounded-lg overflow-hidden">
-                  <img src={url} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover" />
+                  <Image src={url} alt={`Gallery ${index + 1}`} width={80} height={80} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeGalleryImage(index)}

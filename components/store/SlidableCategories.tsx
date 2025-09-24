@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Category {
@@ -40,7 +41,7 @@ export default function SlidableCategories({ categories, tenantSlug, tenantLogo 
 
   const getCategoryName = (category: Category) => {
     if (category.isPlaceholder) {
-      return language === 'ar' ? category.nameAr : category.name;
+      return language === 'ar' ? (category.nameAr || category.name) : category.name;
     }
     return language === 'ar' && category.nameAr ? category.nameAr : category.name;
   };
@@ -97,9 +98,11 @@ export default function SlidableCategories({ categories, tenantSlug, tenantLogo 
                 }`}>
                   {/* Category Image or Icon */}
                   {category.imageUrl && !isPlaceholder ? (
-                    <img
+                    <Image
                       src={category.imageUrl}
                       alt={categoryName}
+                      width={100}
+                      height={100}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   ) : (

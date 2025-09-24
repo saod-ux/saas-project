@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useCustomer } from '@/contexts/CustomerContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,33 +41,33 @@ export default function CustomerAccount({ tenantSlug }: CustomerAccountProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const token = localStorage.getItem('customer_token');
+        const response = await fetch(`/api/storefront/${tenantSlug}/orders`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.ok) {
+            setOrders(result.data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+        toast.error('Failed to load orders');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (customer) {
       fetchOrders();
     }
   }, [customer, tenantSlug]);
-
-  const fetchOrders = async () => {
-    try {
-      const token = localStorage.getItem('customer_token');
-      const response = await fetch(`/api/storefront/${tenantSlug}/orders`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.ok) {
-          setOrders(result.data);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-      toast.error('Failed to load orders');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -199,9 +200,11 @@ export default function CustomerAccount({ tenantSlug }: CustomerAccountProps) {
                     {order.orderItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-3">
                         {item.product.images && item.product.images.length > 0 && (
-                          <img
+                          <Image
                             src={item.product.images[0]}
                             alt={item.product.name}
+                            width={48}
+                            height={48}
                             className="h-12 w-12 object-cover rounded"
                           />
                         )}

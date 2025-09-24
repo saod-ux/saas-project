@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface HeroProps {
@@ -32,9 +33,11 @@ export default function Hero({
             Your browser does not support the video tag.
           </video>
         ) : imageUrl ? (
-          <img
+          <Image
             src={imageUrl}
             alt="Hero background"
+            width={800}
+            height={400}
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (

@@ -36,20 +36,20 @@ export default function NewProduct() {
   }>>([]);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`/api/admin/${tenantSlug}/categories`);
-      const data = await response.json();
-      if (data.ok) {
-        setCategories(data.data);
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`/api/admin/${tenantSlug}/categories`);
+        const data = await response.json();
+        if (data.ok) {
+          setCategories(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
       }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
+    };
+
+    fetchCategories();
+  }, [tenantSlug]);
 
   // Custom fields management functions
   const addCustomField = () => {

@@ -32,26 +32,26 @@ export default function CartPage() {
 
   // Load cart data
   useEffect(() => {
+    const loadCart = async () => {
+      try {
+        const response = await fetch(`/api/storefront/${tenantSlug}/cart`)
+        const data = await response.json()
+        
+        if (data.ok) {
+          setCart(data.data)
+        } else {
+          toast.error('Failed to load cart')
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error)
+        toast.error('Failed to load cart')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadCart()
   }, [tenantSlug])
-
-  const loadCart = async () => {
-    try {
-      const response = await fetch(`/api/storefront/${tenantSlug}/cart`)
-      const data = await response.json()
-      
-      if (data.ok) {
-        setCart(data.data)
-      } else {
-        toast.error('Failed to load cart')
-      }
-    } catch (error) {
-      console.error('Error loading cart:', error)
-      toast.error('Failed to load cart')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // Update item quantity
   const updateQuantity = async (productId: string, newQty: number) => {

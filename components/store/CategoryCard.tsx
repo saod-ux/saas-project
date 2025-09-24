@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import ProductCard from "./ProductCard";
@@ -42,9 +43,11 @@ export default function CategoryCard({ category, products, onAddToCart, onBuyNow
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {category.imageUrl ? (
-              <img
+              <Image
                 src={category.imageUrl}
                 alt={displayName}
+                width={48}
+                height={48}
                 className="h-12 w-12 object-cover rounded-lg"
               />
             ) : (

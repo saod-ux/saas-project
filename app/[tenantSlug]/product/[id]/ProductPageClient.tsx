@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -190,9 +191,11 @@ export default function ProductPageClient({ product, tenantSlug }: ProductPageCl
                     key={index}
                     className="aspect-square bg-white rounded-lg overflow-hidden border-2 border-gray-200 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    <img
+                    <Image
                       src={image}
                       alt={`${product.title} ${index + 1}`}
+                      width={100}
+                      height={100}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -204,9 +207,11 @@ export default function ProductPageClient({ product, tenantSlug }: ProductPageCl
             <div className="flex-1">
               <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
                 {primaryImage ? (
-                  <img
+                  <Image
                     src={primaryImage}
                     alt={product.title}
+                    width={400}
+                    height={400}
                     className="w-full h-full object-cover"
                   />
                 ) : (
