@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebaseAuth } from '@/contexts/FirebaseAuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Phone } from 'lucide-react';
 
-export default function SignInPage() {
+function SignInContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -272,5 +274,13 @@ export default function SignInPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInContent />
+    </Suspense>
   );
 }

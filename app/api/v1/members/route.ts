@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getTenantBySlug, getTenantDocuments } from '@/lib/firebase/tenant'
 import { requireRole } from '@/lib/auth'

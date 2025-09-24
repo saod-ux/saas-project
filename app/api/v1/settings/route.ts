@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getTenantBySlug, updateTenant } from '@/lib/firebase/tenant'
 import { revalidatePath } from 'next/cache'

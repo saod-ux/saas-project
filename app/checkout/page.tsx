@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+export const dynamic = 'force-dynamic';
+
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,7 +26,7 @@ interface CartItem {
   }
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -330,5 +332,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckoutContent />
+    </Suspense>
   )
 }
