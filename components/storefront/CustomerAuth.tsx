@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Phone } from 'lucide-react';
 import { useFirebaseAuth } from '@/contexts/FirebaseAuthContextClient';
-import { ConfirmationResult } from 'firebase/auth';
+import type { ConfirmationResult } from 'firebase/auth';
 
 interface CustomerAuthProps {
   tenantSlug: string;
@@ -118,7 +118,7 @@ export default function CustomerAuth({ tenantSlug, onSuccess, onClose }: Custome
       }
 
       const confirmationResult = await signInWithPhone(phoneNumber);
-      setPhoneConfirmation(confirmationResult);
+      setPhoneConfirmation(confirmationResult as ConfirmationResult);
       toast.success('SMS code sent to your phone!');
     } catch (error: any) {
       toast.error(error.message || 'Failed to send SMS code');
