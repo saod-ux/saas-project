@@ -23,7 +23,8 @@ export async function slugifyUnique(name: string, tenantId: string, currentId?: 
 	let candidate = base
 	let i = 1
 	while (true) {
-		const existing = await prisma.category.findFirst({ where: { tenantId, slug: candidate } })
+		const existingCategories = await getTenantDocuments('categories', tenantId)
+		const existing = existingCategories.find((c: any) => c.slug === candidate)
 		if (!existing || (currentId && existing.id === currentId)) return candidate
 		candidate = `${base}-${i++}`
 	}

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Phone } from 'lucide-react';
-import { useFirebaseAuth } from '@/contexts/FirebaseAuthContextClient';
+import { useFirebaseAuth } from '@/contexts/FirebaseAuthContext';
 import type { ConfirmationResult } from 'firebase/auth';
 
 interface CustomerAuthProps {

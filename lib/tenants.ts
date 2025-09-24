@@ -92,7 +92,11 @@ export async function updateTenantTemplate(
   template: 'RESTAURANT' | 'RETAIL'
 ): Promise<TenantInfo | null> {
   try {
-    const updatedTenant = await updateDocument('tenants', tenantId, { template })
+    await updateDocument('tenants', tenantId, { template })
+    
+    // Fetch the updated tenant
+    const updatedTenant = await getTenantById(tenantId)
+    if (!updatedTenant) return null
 
     return {
       id: updatedTenant.id,
@@ -100,7 +104,7 @@ export async function updateTenantTemplate(
       name: updatedTenant.name,
       template: updatedTenant.template as 'RESTAURANT' | 'RETAIL',
       status: updatedTenant.status,
-      settingsJson: updatedTenant.settings,
+      settingsJson: updatedTenant.settingsJson,
     }
   } catch (error) {
     console.error('Error updating tenant template:', error)

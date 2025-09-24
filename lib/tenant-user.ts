@@ -40,8 +40,7 @@ export interface CreateTenantUserData {
  */
 export async function createTenantUser(data: CreateTenantUserData): Promise<TenantUserData | null> {
   try {
-    const tenantUser = await firestoreCreateTenantUser({
-      tenantId: data.tenantId,
+    const tenantUser = await firestoreCreateTenantUser(data.tenantId, {
       userId: data.userId || null,
       email: data.email,
       phone: data.phone || null,
@@ -83,7 +82,7 @@ export async function findTenantUserByGlobalUserId(
   try {
     // For Firestore, we need to query by tenantId and userId
     const users = await firestoreGetTenantUsers(tenantId)
-    const tenantUser = users.find(user => user.userId === userId)
+    const tenantUser = users.find((user: any) => user.userId === userId)
     return tenantUser || null
   } catch (error) {
     console.error('Error finding TenantUser by global user ID:', error)
@@ -163,8 +162,9 @@ export async function updateTenantUser(
       ...(data.isGuest !== undefined && { isGuest: data.isGuest })
     }
     
-    const tenantUser = await firestoreUpdateTenantUser(tenantUserId, updateData)
-    return tenantUser
+    await firestoreUpdateTenantUser(tenantId, tenantUserId, updateData)
+    // Return the updated user by fetching it
+    return await getTenantUserById(tenantId, tenantUserId)
   } catch (error) {
     console.error('Error updating TenantUser:', error)
     return null
@@ -181,12 +181,12 @@ export async function linkTenantUserToGlobalUser(
   globalUserId: string
 ): Promise<TenantUserData | null> {
   try {
-    const tenantUser = await firestoreUpdateTenantUser(tenantUserId, {
+    await firestoreUpdateTenantUser(tenantId, tenantUserId, {
       userId: globalUserId,
       isGuest: false
     })
 
-    return tenantUser
+    return await getTenantUserById(tenantId, tenantUserId)
   } catch (error) {
     console.error('Error linking TenantUser to global user:', error)
     return null
@@ -218,7 +218,7 @@ export async function getTenantUsers(
     
     // Apply search filter if provided
     if (search) {
-      users = users.filter(user => 
+      users = users.filter((user: any) => 
         user.email.toLowerCase().includes(search.toLowerCase()) ||
         (user.name && user.name.toLowerCase().includes(search.toLowerCase()))
       )
@@ -256,7 +256,7 @@ export async function deleteTenantUser(
 ): Promise<boolean> {
   try {
     // For Firestore, we'll do a soft delete by marking as guest
-    await firestoreUpdateTenantUser(tenantUserId, {
+    await firestoreUpdateTenantUser(tenantId, tenantUserId, {
       isGuest: true,
       userId: null // Unlink from global user
     })

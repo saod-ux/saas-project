@@ -1,4 +1,5 @@
 import { getTenantDocuments } from "@/lib/db";
+import { getTenantBySlug } from "@/lib/firebase/tenant";
 import { NextRequest } from "next/server";
 
 export interface TenantUser {
@@ -13,10 +14,7 @@ export async function requireTenantAndRole(
   allowedRoles: ("OWNER" | "ADMIN" | "STAFF")[] = ["OWNER", "ADMIN"]
 ): Promise<TenantUser> {
   // Get tenant
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-    select: { id: true },
-  });
+  const tenant = await getTenantBySlug(tenantSlug);
 
   if (!tenant) {
     throw new Error("Tenant not found");
@@ -44,10 +42,7 @@ export async function getTenantUser(
 ): Promise<TenantUser | null> {
   if (!userId) return null;
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-    select: { id: true },
-  });
+  const tenant = await getTenantBySlug(tenantSlug);
 
   if (!tenant) return null;
 

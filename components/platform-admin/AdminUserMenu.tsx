@@ -1,5 +1,5 @@
 "use client";
-import { useFirebaseAuth } from "@/contexts/FirebaseAuthContextClient";
+import { useFirebaseAuth } from "@/contexts/FirebaseAuthContext";
 import { useRouter } from "next/navigation";
 
 export default function AdminUserMenu() {

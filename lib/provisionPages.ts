@@ -33,12 +33,8 @@ export async function provisionDefaultPages(tenantId: string, lang: 'en' | 'ar')
   for (const pageData of pages) {
     try {
       // Check if page already exists
-      const existingPage = await prisma.page.findFirst({
-        where: {
-          tenantId,
-          slug: pageData.slug,
-        },
-      });
+      const existingPages = await getTenantDocuments('pages', tenantId);
+      const existingPage = existingPages.find((p: any) => p.slug === pageData.slug);
 
       if (existingPage) {
         console.log(`Page ${pageData.slug} already exists for tenant ${tenantId}`);
@@ -47,14 +43,12 @@ export async function provisionDefaultPages(tenantId: string, lang: 'en' | 'ar')
       }
 
       // Create new page
-        const page = await prisma.page.create({
-        data: {
-          tenantId,
-          slug: pageData.slug,
-          title: pageData.title,
-          content: pageData.content,
-          isPublished: pageData.published,
-        },
+      const page = await createDocument('pages', {
+        tenantId,
+        slug: pageData.slug,
+        title: pageData.title,
+        content: pageData.content,
+        isPublished: pageData.published,
       });
 
       results.push({ slug: pageData.slug, status: 'created', id: page.id });

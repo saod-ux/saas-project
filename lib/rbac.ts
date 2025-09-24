@@ -17,7 +17,7 @@ export async function requirePlatformRole(
 
     // Get platform admin record
     const platformAdmins = await getTenantDocuments(COLLECTIONS.PLATFORM_ADMINS, '');
-    const platformAdmin = platformAdmins.find(admin => admin.userId === user.uid);
+    const platformAdmin = platformAdmins.find((admin: any) => admin.userId === user.uid);
 
     if (!platformAdmin) {
       return NextResponse.json({ ok: false, error: 'ACCESS_DENIED' }, { status: 403 });

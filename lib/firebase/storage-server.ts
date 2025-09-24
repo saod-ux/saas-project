@@ -1,5 +1,5 @@
 // Server-side Firebase Storage utilities
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, cert, ServiceAccount } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { getStorageBucket, getPublicUrl } from '@/lib/config/storage';
 
@@ -22,10 +22,10 @@ export const getServerStorage = async () => {
           throw new Error('Firebase Admin environment variables are not set. Required: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY');
         }
         
-        const serviceAccount = {
-          project_id: process.env.FIREBASE_PROJECT_ID,
-          client_email: process.env.FIREBASE_CLIENT_EMAIL,
-          private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        const serviceAccount: ServiceAccount = {
+          projectId: process.env.FIREBASE_PROJECT_ID!,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
         };
         
 // Use centralized bucket configuration

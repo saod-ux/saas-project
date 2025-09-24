@@ -35,7 +35,7 @@ export async function validateTenantAccess(tenantId: string, userId?: string): P
   }
   
   const memberships = await getTenantDocuments(COLLECTIONS.MEMBERSHIPS, tenantId)
-  const membership = memberships.find(m => m.userId === userId)
+  const membership = memberships.find((m: any) => m.userId === userId)
   
   return !!membership
 }

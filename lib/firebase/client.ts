@@ -62,7 +62,7 @@ try {
       if (!auth.emulatorConfig) {
         connectAuthEmulator(auth, 'http://localhost:9099');
       }
-      if (db && !db._delegate._settings?.host?.includes('localhost')) {
+      if (db && !(db as any)._delegate._settings?.host?.includes('localhost')) {
         connectFirestoreEmulator(db, 'localhost', 8080);
       }
       if (storage && !storage.app.options.storageBucket?.includes('localhost')) {

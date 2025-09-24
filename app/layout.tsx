@@ -1,6 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import { FirebaseAuthProvider } from '@/contexts/FirebaseAuthContextClient'
+import { FirebaseAuthProvider } from '@/contexts/FirebaseAuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 
 export const metadata: Metadata = {

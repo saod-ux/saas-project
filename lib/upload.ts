@@ -34,11 +34,11 @@ export async function uploadFile(
   metadata: FileMetadata
 ): Promise<UploadResult> {
   const path = await createUploadPath(tenantId, file.name)
-  const publicUrl = await firebaseUploadFile(path, file, fileType)
+  const uploadResult = await firebaseUploadFile(path, file, fileType)
   
   return {
     fileId: path,
-    publicUrl,
+    publicUrl: uploadResult.downloadURL,
     path
   }
 }

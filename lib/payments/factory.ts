@@ -11,9 +11,8 @@ import { getTenantDocuments } from '@/lib/db';
 
 export async function getPaymentAdapter(tenantId: string): Promise<PaymentAdapter | null> {
   try {
-    const config = await prisma.paymentConfig.findUnique({
-      where: { tenantId }
-    });
+    const configs = await getTenantDocuments('paymentConfigs', tenantId);
+    const config = configs.find((c: any) => c.tenantId === tenantId);
 
     if (!config || config.provider === 'NONE' || !config.isValid) {
       return null;
