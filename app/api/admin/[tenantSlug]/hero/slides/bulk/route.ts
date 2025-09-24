@@ -38,6 +38,9 @@ export async function PUT(
         poster: slide.poster ?? null,
         sortOrder: i,
         isActive: slide.isActive ?? true,
+        width: slide.width ?? 0,
+        height: slide.height ?? 0,
+        alt: slide.alt ?? '',
       });
     }
 
@@ -77,6 +80,9 @@ export async function GET(
         poster: slide.poster,
         sortOrder: slide.sortOrder,
         isActive: slide.isActive,
+        width: slide.width ?? 0,
+        height: slide.height ?? 0,
+        alt: slide.alt ?? '',
         updatedAt: slide.updatedAt,
       }));
     

@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, connectAuthEmulator, GoogleAuthProvider, PhoneAuthProvider, RecaptchaVerifier } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getStorageBucket } from '@/lib/config/storage';
 
@@ -46,7 +46,8 @@ try {
   
   // Initialize Firebase services
   auth = getAuth(app);
-  db = getFirestore(app);
+  // Initialize Firestore with ignoreUndefinedProperties to avoid write errors
+  db = initializeFirestore(app, { ignoreUndefinedProperties: true });
   storage = getStorage(app);
   
   // Create Google Auth Provider instance

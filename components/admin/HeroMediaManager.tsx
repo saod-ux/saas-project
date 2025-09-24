@@ -12,6 +12,9 @@ interface HeroMediaItem {
   sortOrder: number;
   isActive: boolean;
   updatedAt: string;
+  width?: number;
+  height?: number;
+  alt?: string;
 }
 
 interface HeroMediaManagerProps {
@@ -38,7 +41,10 @@ export default function HeroMediaManager({ tenantSlug, initial, onSaved }: HeroM
           slides: currentItems.map(item => ({
             type: item.type,
             url: item.url,
-            sortOrder: item.sortOrder
+            sortOrder: item.sortOrder,
+            width: item.width ?? 0,
+            height: item.height ?? 0,
+            alt: item.alt ?? ''
           }))
         }),
       });
@@ -111,6 +117,9 @@ export default function HeroMediaManager({ tenantSlug, initial, onSaved }: HeroM
         sortOrder: items.length,
         isActive: true,
         updatedAt: new Date().toISOString(),
+        width: 0,
+        height: 0,
+        alt: type === 'image' ? file.name : 'video',
       };
       
       setItems(prev => [...prev, newItem]);
@@ -136,7 +145,10 @@ export default function HeroMediaManager({ tenantSlug, initial, onSaved }: HeroM
           slides: items.map(item => ({
             type: item.type,
             url: item.url,
-            sortOrder: item.sortOrder
+            sortOrder: item.sortOrder,
+            width: item.width ?? 0,
+            height: item.height ?? 0,
+            alt: item.alt ?? ''
           }))
         }),
       });

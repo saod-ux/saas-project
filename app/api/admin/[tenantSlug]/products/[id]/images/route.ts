@@ -9,8 +9,9 @@ export const dynamic = "force-dynamic";
 const AddImagesSchema = z.object({
   images: z.array(z.object({
     url: z.string().url(),
-    width: z.number().optional(),
-    height: z.number().optional(),
+    width: z.number().int().min(0).optional(),
+    height: z.number().int().min(0).optional(),
+    alt: z.string().optional(),
   })).min(1)
 });
 
@@ -53,6 +54,9 @@ export async function POST(
         createDocument('productImages', {
           productId: product.id,
           url: img.url,
+          width: img.width ?? 0,
+          height: img.height ?? 0,
+          alt: img.alt ?? '',
           order: baseOrder + idx + 1,
           isPrimary: !hasPrimary && idx === 0, // Auto-primary if none exists
         })

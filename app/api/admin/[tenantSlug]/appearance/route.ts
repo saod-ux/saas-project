@@ -8,13 +8,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type AppearancePayload = {
-  logoUrl: string | null;
+  logo: { url: string; width: number; height: number; alt: string } | null;
   heroImages: string[];      // carousel images
   heroVideoUrl: string | null;
 };
 
 function normalizeAppearance(tenant: any, heroSlides: any[]): AppearancePayload {
-  const logoUrl = tenant?.logoUrl ?? null;
+  const logo = tenant?.logo ?? null;
 
   // Extract hero images from heroSlides
   const heroImagesArray: string[] = heroSlides
@@ -26,7 +26,7 @@ function normalizeAppearance(tenant: any, heroSlides: any[]): AppearancePayload 
     ?.find((slide: any) => slide.type === 'video' && slide.url && slide.isActive)?.url ?? null;
 
   return {
-    logoUrl,
+    logo,
     heroImages: heroImagesArray,
     heroVideoUrl,
   };
@@ -40,7 +40,7 @@ export async function GET(
     // Get tenant by slug
     const tenant = await getTenantBySlug(params.tenantSlug);
     if (!tenant) {
-      const empty: AppearancePayload = { logoUrl: null, heroImages: [], heroVideoUrl: null };
+      const empty: AppearancePayload = { logo: null, heroImages: [], heroVideoUrl: null };
       return NextResponse.json({ ok: true, appearance: empty }, { status: 200 });
     }
     
@@ -112,10 +112,10 @@ export async function PUT(
       }
     }
 
-    // Upsert tenant fields; only touch logoUrl if provided to avoid clearing it
+    // Upsert tenant fields; only touch logo if provided to avoid clearing it
     const updateData: any = { updatedAt: new Date() };
-    if (Object.prototype.hasOwnProperty.call(body, 'logoUrl')) {
-      updateData.logoUrl = body.logoUrl ?? null;
+    if (Object.prototype.hasOwnProperty.call(body, 'logo')) {
+      updateData.logo = body.logo ?? null;
     }
     await db.collection('tenants').doc(tenantId).set(updateData, { merge: true });
 

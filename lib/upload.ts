@@ -8,10 +8,18 @@ export interface FileMetadata {
   uploadedBy: string
 }
 
+export interface UploadImage {
+  url: string
+  width: number
+  height: number
+  alt: string
+}
+
 export interface UploadResult {
   fileId: string
   publicUrl: string
   path: string
+  image: UploadImage
 }
 
 export async function createUploadPath(
@@ -35,11 +43,20 @@ export async function uploadFile(
 ): Promise<UploadResult> {
   const path = await createUploadPath(tenantId, file.name)
   const uploadResult = await firebaseUploadFile(path, file, fileType)
-  
+
+  // Basic width/height are unknown here; callers can update later after rendering
+  const image: UploadImage = {
+    url: uploadResult.downloadURL,
+    width: 0,
+    height: 0,
+    alt: metadata.filename || 'uploaded image'
+  }
+
   return {
     fileId: path,
     publicUrl: uploadResult.downloadURL,
-    path
+    path,
+    image
   }
 }
 

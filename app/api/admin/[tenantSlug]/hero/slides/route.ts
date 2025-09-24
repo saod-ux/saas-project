@@ -48,6 +48,9 @@ export async function PUT(
       url: z.string().url(),
       sortOrder: z.number().int().min(0),
       isActive: z.boolean().optional(),
+      width: z.number().int().min(0).optional(),
+      height: z.number().int().min(0).optional(),
+      alt: z.string().optional(),
     });
     const Schema = z.object({ slides: z.array(SlideSchema) });
     const parsed = Schema.safeParse(body);
@@ -83,6 +86,9 @@ export async function PUT(
         type: s.type === 'video' ? 'video' : 'image',
         sortOrder: typeof s.sortOrder === 'number' ? s.sortOrder : i,
         isActive: s.isActive !== false,
+        width: s.width ?? 0,
+        height: s.height ?? 0,
+        alt: s.alt ?? '',
         createdAt: new Date(),
         updatedAt: new Date(),
       });

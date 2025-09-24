@@ -5,8 +5,15 @@ import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
 
+const ImageSchema = z.object({
+  url: z.string().url(),
+  width: z.number().int().min(0).optional(),
+  height: z.number().int().min(0).optional(),
+  alt: z.string().optional(),
+});
+
 const UpdateCategoryImageSchema = z.object({
-  imageUrl: z.string().url().nullable()
+  image: ImageSchema.nullable()
 });
 
 export async function PUT(
@@ -19,7 +26,7 @@ export async function PUT(
     
     const { tenant } = result;
     const body = await request.json();
-    const { imageUrl } = UpdateCategoryImageSchema.parse(body);
+    const { image } = UpdateCategoryImageSchema.parse(body);
 
     // Check if category exists and belongs to tenant
     const categories = await getTenantDocuments('categories', tenant.id);
@@ -29,18 +36,24 @@ export async function PUT(
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
-    // Update category image
-    const updated = await updateDocument('categories', params.id, { 
-      imageUrl,
-      updatedAt: new Date()
-    });
+    // Update category image (omit when null)
+    const updatePayload: any = { updatedAt: new Date() };
+    if (image) {
+      updatePayload.image = {
+        url: image.url,
+        width: image.width ?? 0,
+        height: image.height ?? 0,
+        alt: image.alt ?? '',
+      };
+    } else {
+      updatePayload.image = null;
+    }
+
+    const updated = await updateDocument('categories', params.id, updatePayload);
 
     return NextResponse.json({ 
       ok: true,
-      data: {
-        id: updated.id,
-        imageUrl: imageUrl
-      }
+      data: { id: updated.id, image: image ?? null }
     });
   } catch (error) {
     console.error("Error updating category image:", error);

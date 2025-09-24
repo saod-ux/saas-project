@@ -6,8 +6,15 @@ import HeroMediaManager from "@/components/admin/HeroMediaManager";
 import LogoUploader from "@/components/admin/LogoUploader";
 import { PageHelp } from "@/components/admin/PageHelp";
 
+type LogoImage = {
+  url: string;
+  width: number;
+  height: number;
+  alt: string;
+};
+
 type AppearancePayload = {
-  logoUrl: string | null;
+  logo: LogoImage | null;
   heroImages: string[];
   heroVideoUrl: string | null;
 };
@@ -27,7 +34,7 @@ export default function AppearancePage() {
   const searchParams = useSearchParams();
   const locale = searchParams.get('locale') || 'en';
   const [appearance, setAppearance] = useState<AppearancePayload>({ 
-    logoUrl: null, 
+    logo: null, 
     heroImages: [], 
     heroVideoUrl: null 
   });
@@ -45,16 +52,16 @@ export default function AppearancePage() {
 
       if (!res.ok) {
         // Safe fallback
-        setAppearance({ logoUrl: null, heroImages: [], heroVideoUrl: null });
+        setAppearance({ logo: null, heroImages: [], heroVideoUrl: null });
         return;
       }
 
       const json = await res.json();
-      const data: AppearancePayload = json?.appearance ?? { logoUrl: null, heroImages: [], heroVideoUrl: null };
+      const data: AppearancePayload = json?.appearance ?? { logo: null, heroImages: [], heroVideoUrl: null };
       
       // Ensure arrays/strings are well-formed
       setAppearance({
-        logoUrl: data.logoUrl ?? null,
+        logo: data.logo ?? null,
         heroImages: Array.isArray(data.heroImages) ? data.heroImages : [],
         heroVideoUrl: data.heroVideoUrl ?? null,
       });
@@ -62,7 +69,7 @@ export default function AppearancePage() {
       console.error("Error fetching appearance:", err);
       setError("Failed to load appearance settings");
       // Safe fallback
-      setAppearance({ logoUrl: null, heroImages: [], heroVideoUrl: null });
+      setAppearance({ logo: null, heroImages: [], heroVideoUrl: null });
     } finally {
       setLoading(false);
     }
@@ -73,7 +80,7 @@ export default function AppearancePage() {
   }, [tenantSlug, fetchAppearance]);
 
   // Use safe defaults in the UI
-  const logoUrl = appearance.logoUrl ?? "";
+  const logo = appearance.logo ?? null;
   const heroImages = appearance.heroImages ?? [];
   const initialHeroItems = heroImages.map((url, index) => ({
     id: `existing-${index}`,
@@ -86,7 +93,7 @@ export default function AppearancePage() {
   }));
   const heroVideoUrl = appearance.heroVideoUrl ?? "";
 
-  const handleLogoChange = async (logoUrl: string | null) => {
+  const handleLogoChange = async (logoData: LogoImage | null) => {
     try {
       setSaving(true);
       setError("");
@@ -94,14 +101,14 @@ export default function AppearancePage() {
       const response = await fetch(`/api/admin/${tenantSlug}/logo`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logoUrl }),
+        body: JSON.stringify({ logo: logoData }),
       });
       
       if (!response.ok) {
         throw new Error("Failed to save logo");
       }
       
-      setAppearance(prev => ({ ...prev, logoUrl }));
+      setAppearance(prev => ({ ...prev, logo: logoData }));
       
       // Show success message - no hard refresh needed
       console.log("Logo saved successfully");
@@ -158,7 +165,7 @@ export default function AppearancePage() {
         </div>
         <LogoUploader 
           tenantSlug={tenantSlug}
-          currentLogoUrl={logoUrl}
+          currentLogo={logo}
           onLogoChange={handleLogoChange}
         />
       </div>

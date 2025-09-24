@@ -32,19 +32,17 @@ function SignInContent() {
       return redirect;
     }
     
-    // Default redirects based on context
-    // If coming from admin context, go to admin platform
-    if (window.location.pathname.includes('/admin') || searchParams.get('context') === 'admin') {
+    // Check for role-based redirects
+    const adminRole = document.cookie.includes('admin_role=');
+    const platformRole = document.cookie.includes('platform_role=');
+    
+    // If user has admin/owner role, redirect to admin
+    if (adminRole || platformRole) {
       return '/admin/platform';
     }
     
-    // If coming from storefront context, go to demo store
-    if (window.location.pathname.includes('/demo-store') || searchParams.get('context') === 'storefront') {
-      return '/demo-store/retail';
-    }
-    
-    // Default to admin platform
-    return '/admin/platform';
+    // Default to storefront account page
+    return '/demo-store/account';
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {

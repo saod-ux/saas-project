@@ -6,48 +6,49 @@ import { Button } from "@/components/ui/button";
 import { Building2 } from "lucide-react";
 import MediaUploader from "@/components/admin/MediaUploader";
 
+interface ImageObj { url: string; width?: number; height?: number; alt?: string }
 interface CategoryImagePickerProps {
   tenantSlug: string;
   tenantId: string;
   categoryId: string;
-  currentUrl?: string | null;
-  tenantLogoUrl?: string | null;
-  onChange?: (url: string | null) => void;
+  currentImage?: ImageObj | null;
+  tenantLogo?: ImageObj | null;
+  onChange?: (image: ImageObj | null) => void;
 }
 
 export default function CategoryImagePicker({
   tenantSlug,
   tenantId,
   categoryId,
-  currentUrl,
-  tenantLogoUrl,
+  currentImage,
+  tenantLogo,
   onChange,
 }: CategoryImagePickerProps) {
-  const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
+  const [preview, setPreview] = useState<ImageObj | null>(currentImage ?? null);
   const [loading, setLoading] = useState(false);
 
-  async function saveImage(url: string | null) {
+  async function saveImage(image: ImageObj | null) {
     setLoading(true);
     try {
-      setPreview(url);
-      onChange?.(url);
+      setPreview(image);
+      onChange?.(image);
       
       const response = await fetch(`/api/admin/${tenantSlug}/categories/${categoryId}/image`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: url }),
+        body: JSON.stringify({ image: image ? { url: image.url, width: image.width ?? 0, height: image.height ?? 0, alt: image.alt ?? '' } : null }),
       });
       
       if (!response.ok) {
         const errorText = await response.text();
         alert(`Failed to save category image: ${errorText}`);
         // Revert on error
-        setPreview(currentUrl ?? null);
+        setPreview(currentImage ?? null);
       }
     } catch (error) {
       console.error("Failed to save category image:", error);
       // Revert on error
-      setPreview(currentUrl ?? null);
+      setPreview(currentImage ?? null);
     } finally {
       setLoading(false);
     }
@@ -57,8 +58,8 @@ export default function CategoryImagePicker({
     saveImage(null); // null means use logo fallback
   }
 
-  const displayImage = preview || tenantLogoUrl;
-  const isUsingLogo = !preview && tenantLogoUrl;
+  const displayImage = preview?.url || tenantLogo?.url || null;
+  const isUsingLogo = !preview && !!tenantLogo?.url;
 
   return (
     <div className="space-y-4">
@@ -105,7 +106,7 @@ export default function CategoryImagePicker({
           prefix={`tenants/${tenantId}/categories/${categoryId}`}
           onUploaded={(files) => {
             if (files?.[0]?.url) {
-              saveImage(files[0].url);
+              saveImage({ url: files[0].url, width: files[0].width ?? 0, height: files[0].height ?? 0, alt: 'category' });
             }
           }}
           maxImages={1}

@@ -14,12 +14,12 @@ export async function GET(
   try {
     const startedAt = Date.now();
     const tenant = await getTenantBySlug(params.tenantSlug);
-    const logoUrl = tenant?.logoUrl ?? null;
+    const logo = tenant?.logo ?? null;
     console.log(JSON.stringify({
       level: 'info', route: '/api/admin/[slug]/logo', method: 'GET', tenantSlug: params.tenantSlug,
       tenantId: tenant?.id ?? null, status: 200, durationMs: Date.now() - startedAt
     }));
-    return NextResponse.json({ ok: true, logoUrl }, { headers: { "Cache-Control": "no-store" }});
+    return NextResponse.json({ ok: true, logo }, { headers: { "Cache-Control": "no-store" }});
   } catch (error) {
     console.error(JSON.stringify({
       level: 'error', route: '/api/admin/[slug]/logo', method: 'GET', tenantSlug: params.tenantSlug,
@@ -39,7 +39,12 @@ export async function PUT(
     const body = await request.json();
 
     const LogoSchema = z.object({
-      logoUrl: z.string().url().nullable(),
+      logo: z.object({
+        url: z.string().url(),
+        width: z.number().min(0),
+        height: z.number().min(0),
+        alt: z.string()
+      }).nullable(),
     });
     const parsed = LogoSchema.safeParse(body);
     if (!parsed.success) {
@@ -48,7 +53,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    const { logoUrl } = parsed.data;
+    const { logo } = parsed.data;
 
     // Resolve tenant
     const existing = await getTenantBySlug(params.tenantSlug);
@@ -61,7 +66,7 @@ export async function PUT(
       tenantId = docRef.id;
     }
 
-    await db.collection('tenants').doc(tenantId).set({ logoUrl: logoUrl ?? null, updatedAt: new Date() }, { merge: true });
+    await db.collection('tenants').doc(tenantId).set({ logo, updatedAt: new Date() }, { merge: true });
 
     revalidatePath(`/${params.tenantSlug}`, "page");
     revalidatePath(`/${params.tenantSlug}/retail`, "page");

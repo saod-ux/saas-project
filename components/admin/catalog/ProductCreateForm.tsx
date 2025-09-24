@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 // Using Firebase Storage upload via API
 import { Loader2, X } from 'lucide-react'
+import { normalizeNumericInput, parseNumericInput } from '@/lib/utils/normalize-digits'
 
 interface Category {
   id: string
@@ -207,6 +208,7 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
           onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
           placeholder="Enter product title"
           maxLength={120}
+          className="text-gray-900 placeholder:text-gray-500"
         />
         {errors.title && <p className="text-sm text-red-500 mt-1">{errors.title}</p>}
       </div>
@@ -220,6 +222,7 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
           onChange={(e) => setForm(prev => ({ ...prev, sku: e.target.value }))}
           placeholder="Enter SKU (optional)"
           maxLength={80}
+          className="text-gray-900 placeholder:text-gray-500"
         />
         {errors.sku && <p className="text-sm text-red-500 mt-1">{errors.sku}</p>}
       </div>
@@ -252,7 +255,10 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
             step="0.01"
             min="0"
             value={form.price}
-            onChange={(e) => setForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+            onChange={(e) => {
+              const normalized = normalizeNumericInput(e.target.value);
+              setForm(prev => ({ ...prev, price: parseNumericInput(normalized) }));
+            }}
             placeholder="0.00"
           />
           {errors.price && <p className="text-sm text-red-500 mt-1">{errors.price}</p>}
@@ -280,7 +286,10 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
           type="number"
           min="0"
           value={form.stock}
-          onChange={(e) => setForm(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
+          onChange={(e) => {
+            const normalized = normalizeNumericInput(e.target.value);
+            setForm(prev => ({ ...prev, stock: parseInt(normalized) || 0 }));
+          }}
           placeholder="0"
         />
         {errors.stock && <p className="text-sm text-red-500 mt-1">{errors.stock}</p>}

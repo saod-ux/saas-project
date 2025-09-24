@@ -5,15 +5,22 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Check } from "lucide-react";
 
+interface LogoImage {
+  url: string;
+  width: number;
+  height: number;
+  alt: string;
+}
+
 interface LogoUploaderProps {
   tenantSlug: string;
-  currentLogoUrl?: string | null;
-  onLogoChange: (logoUrl: string | null) => void;
+  currentLogo?: LogoImage | null;
+  onLogoChange: (logo: LogoImage | null) => void;
 }
 
 export default function LogoUploader({ 
   tenantSlug, 
-  currentLogoUrl, 
+  currentLogo, 
   onLogoChange 
 }: LogoUploaderProps) {
   const [uploading, setUploading] = useState(false);
@@ -61,14 +68,19 @@ export default function LogoUploader({
         throw new Error(data.error || "Upload failed");
       }
       
-      // Firebase Storage upload is handled server-side, just get the URL
-      const logoUrl = data.data.url || data.data.imageUrl;
+      // Get the normalized image object from upload result
+      const imageData = data.data.image || {
+        url: data.data.url || data.data.imageUrl,
+        width: 0,
+        height: 0,
+        alt: file.name || 'logo'
+      };
 
-      // Save via dedicated logo endpoint
+      // Save via dedicated logo endpoint with normalized image object
       const saveRes = await fetch(`/api/admin/${tenantSlug}/logo`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logoUrl }),
+        body: JSON.stringify({ logo: imageData }),
         cache: "no-store"
       });
       if (!saveRes.ok) {
@@ -76,7 +88,7 @@ export default function LogoUploader({
         throw new Error(errJson.error || "Failed to save logo to tenant");
       }
 
-      onLogoChange(logoUrl);
+      onLogoChange(imageData);
       setSuccess("Logo uploaded successfully!");
       
       // Clear success message after 3 seconds
@@ -100,7 +112,7 @@ export default function LogoUploader({
       const saveRes = await fetch(`/api/admin/${tenantSlug}/logo`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logoUrl: null }),
+        body: JSON.stringify({ logo: null }),
         cache: "no-store"
       });
       if (!saveRes.ok) {
@@ -124,13 +136,13 @@ export default function LogoUploader({
       {/* Current Logo Display */}
       <div className="rounded border p-4">
         <p className="mb-2 text-sm text-muted-foreground">Logo</p>
-        {currentLogoUrl ? (
+        {currentLogo?.url ? (
           <div className="flex items-center gap-4">
             <Image 
-              src={currentLogoUrl} 
-              alt="Current logo" 
-              width={64}
-              height={64}
+              src={currentLogo.url} 
+              alt={currentLogo.alt || "Current logo"} 
+              width={currentLogo.width || 64}
+              height={currentLogo.height || 64}
               className="h-16 w-16 rounded object-contain bg-muted border" 
             />
             <Button

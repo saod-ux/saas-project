@@ -65,6 +65,8 @@ const storageBucket = getStorageBucket(false);
     // Initialize server-only instances
     serverAuth = getAuth(serverApp);
     serverDb = getFirestore(serverApp);
+    // Ensure the Admin SDK ignores undefined properties to match client behavior
+    serverDb.settings({ ignoreUndefinedProperties: true } as any);
     serverStorage = getStorage(serverApp);
     
     console.log('Firebase Admin SDK initialized successfully');

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 interface MediaUploaderProps {
   tenantId: string;
   prefix: string; // e.g. `tenants/${tenantId}/products/${productId}`
-  onUploaded: (files: {url: string}[]) => void;
+  onUploaded: (files: {url: string; width?: number; height?: number; alt?: string}[]) => void;
   maxImages?: number;
   className?: string;
   tenantSlug?: string; // For fetching media settings
@@ -67,7 +67,7 @@ export default function MediaUploader({
     
     setBusy(true);
     setUploadProgress({});
-    const uploadedFiles: {url: string}[] = [];
+    const uploadedFiles: {url: string; width?: number; height?: number; alt?: string}[] = [];
     const filesToProcess = Array.from(files).slice(0, maxImages).filter(file => file.type.startsWith('image/'));
 
     // Client-side validation
@@ -118,8 +118,14 @@ export default function MediaUploader({
           return;
         }
         
-        const { url } = await response.json();
-        uploadedFiles.push({ url });
+        const result = await response.json();
+        const url = result.data?.url || result.url;
+        uploadedFiles.push({ 
+          url, 
+          width: 0, 
+          height: 0, 
+          alt: file.name 
+        });
       }
 
       onUploaded(uploadedFiles);
