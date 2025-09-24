@@ -44,9 +44,15 @@ export async function uploadFile(
   const path = await createUploadPath(tenantId, file.name)
   const uploadResult = await firebaseUploadFile(path, file, fileType)
 
+  // Ensure we have a proper download URL with token
+  let downloadURL = uploadResult.downloadURL;
+  if (!downloadURL || downloadURL.startsWith('gs://')) {
+    throw new Error('Invalid download URL received from upload');
+  }
+
   // Basic width/height are unknown here; callers can update later after rendering
   const image: UploadImage = {
-    url: uploadResult.downloadURL,
+    url: downloadURL,
     width: 0,
     height: 0,
     alt: metadata.filename || 'uploaded image'
@@ -54,7 +60,7 @@ export async function uploadFile(
 
   return {
     fileId: path,
-    publicUrl: uploadResult.downloadURL,
+    publicUrl: downloadURL,
     path,
     image
   }

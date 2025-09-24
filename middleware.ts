@@ -16,21 +16,20 @@ export function middleware(request: NextRequest) {
 
   // Protect admin routes
   if (pathname.startsWith('/admin')) {
-    // Check for authentication token in cookies or headers (defensive - no auto-auth)
-    const authToken = request.cookies.get('admin_token')?.value ||
-                      request.cookies.get('id_token')?.value ||
-                      request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!authToken) {
+    // Check for session cookie
+    const sessionCookie = request.cookies.get('session')?.value;
+    const uidCookie = request.cookies.get('uid')?.value;
+
+    if (!sessionCookie || !uidCookie) {
       // Redirect to sign-in with return URL
       const signInUrl = new URL('/sign-in', request.url);
       signInUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(signInUrl);
     }
 
-    // Enforce roles using cookies set after client auth (edge-safe; no Admin SDK here)
-    const adminRole = request.cookies.get('admin_role')?.value || '';
+    // Enforce roles using session cookies
     const platformRole = request.cookies.get('platform_role')?.value || '';
+    const tenantRole = request.cookies.get('tenant_role')?.value || '';
 
     // Platform admin area requires platform role
     if (pathname.startsWith('/admin/platform')) {
@@ -41,8 +40,8 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(signInUrl);
       }
     } else {
-      // Tenant admin area requires admin role
-      const isAdmin = adminRole === 'ADMIN' || adminRole === 'OWNER' || adminRole === 'SUPER_ADMIN';
+      // Tenant admin area requires admin/owner role
+      const isAdmin = tenantRole === 'admin' || tenantRole === 'owner';
       if (!isAdmin) {
         const signInUrl = new URL('/sign-in', request.url);
         signInUrl.searchParams.set('redirect', pathname);

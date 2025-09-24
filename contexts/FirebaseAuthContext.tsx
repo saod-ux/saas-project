@@ -40,6 +40,7 @@ interface AuthContextType {
   signOutUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (updates: { displayName?: string; photoURL?: string }) => Promise<void>;
+  createSession: (idToken: string) => Promise<{ platformRole?: string; tenantRole?: string; tenantSlug?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,18 +82,42 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     };
   }, [recaptcha]);
 
+  const createSession = async (idToken: string) => {
+    try {
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create session');
+      }
+
+      const data = await response.json();
+      return data.roles || {};
+    } catch (error) {
+      console.error('Session creation failed:', error);
+      throw error;
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     if (!firebaseLoaded) {
       throw new Error('Firebase is not loaded yet. Please try again.');
     }
-    
+
     if (!typedAuth || !signInWithEmailAndPassword) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
-    
+
     try {
       setError(null);
-      await signInWithEmailAndPassword(typedAuth, email, password);
+      const result = await signInWithEmailAndPassword(typedAuth, email, password);
+      
+      // Create session after successful sign-in
+      const idToken = await result.user.getIdToken();
+      await createSession(idToken);
     } catch (error: any) {
       setError(error.message || 'Sign in failed');
       throw error;
@@ -103,13 +128,17 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     if (!typedAuth || !createUserWithEmailAndPassword) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
-    
+
     try {
       setError(null);
       const result = await createUserWithEmailAndPassword(typedAuth, email, password);
       if (displayName && updateProfile) {
         await updateProfile(result.user, { displayName });
       }
+      
+      // Create session after successful sign-up
+      const idToken = await result.user.getIdToken();
+      await createSession(idToken);
     } catch (error: any) {
       setError(error.message || 'Sign up failed');
       throw error;
@@ -120,10 +149,14 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     if (!typedAuth || !typedGoogleProvider || !signInWithPopup) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
-    
+
     try {
       setError(null);
-      await signInWithPopup(typedAuth, typedGoogleProvider);
+      const result = await signInWithPopup(typedAuth, typedGoogleProvider);
+      
+      // Create session after successful Google sign-in
+      const idToken = await result.user.getIdToken();
+      await createSession(idToken);
     } catch (error: any) {
       setError(error.message || 'Google sign in failed');
       throw error;
@@ -183,9 +216,14 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     if (!typedAuth || !signOut) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
-    
+
     try {
       setError(null);
+      
+      // Clear session cookies first
+      await fetch('/api/auth/session', { method: 'DELETE' });
+      
+      // Then sign out from Firebase
       await signOut(typedAuth);
     } catch (error: any) {
       setError(error.message || 'Sign out failed');
@@ -233,6 +271,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     signOutUser,
     resetPassword,
     updateUserProfile,
+    createSession,
   };
 
   return (

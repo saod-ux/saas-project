@@ -251,15 +251,15 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
           <Label htmlFor="price">Price *</Label>
           <Input
             id="price"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.price}
+            type="text"
+            value={form.price.toString()}
             onChange={(e) => {
               const normalized = normalizeNumericInput(e.target.value);
-              setForm(prev => ({ ...prev, price: parseNumericInput(normalized) }));
+              const parsed = parseNumericInput(normalized);
+              setForm(prev => ({ ...prev, price: parsed }));
             }}
             placeholder="0.00"
+            className="text-gray-900 placeholder:text-gray-500"
           />
           {errors.price && <p className="text-sm text-red-500 mt-1">{errors.price}</p>}
         </div>
@@ -283,14 +283,15 @@ export function ProductCreateForm({ categories, tenantSlug, onSubmit, onError }:
         <Label htmlFor="stock">Stock Quantity *</Label>
         <Input
           id="stock"
-          type="number"
-          min="0"
-          value={form.stock}
+          type="text"
+          value={form.stock.toString()}
           onChange={(e) => {
             const normalized = normalizeNumericInput(e.target.value);
-            setForm(prev => ({ ...prev, stock: parseInt(normalized) || 0 }));
+            const parsed = parseInt(normalized) || 0;
+            setForm(prev => ({ ...prev, stock: parsed }));
           }}
           placeholder="0"
+          className="text-gray-900 placeholder:text-gray-500"
         />
         {errors.stock && <p className="text-sm text-red-500 mt-1">{errors.stock}</p>}
       </div>

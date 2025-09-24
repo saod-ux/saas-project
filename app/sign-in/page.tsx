@@ -21,24 +21,37 @@ function SignInContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [phoneConfirmation, setPhoneConfirmation] = useState<any>(null);
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
-  const { signIn, signInWithGoogle, signInWithPhone, confirmPhoneCode } = useFirebaseAuth();
+  const { signIn, signInWithGoogle, signInWithPhone, confirmPhoneCode, createSession } = useFirebaseAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const getRedirectUrl = () => {
+  const getRedirectUrl = (roles?: { platformRole?: string; tenantRole?: string; tenantSlug?: string }) => {
     // Get redirect from query params
     const redirect = searchParams.get('redirect');
     if (redirect) {
       return redirect;
     }
     
-    // Check for role-based redirects
-    const adminRole = document.cookie.includes('admin_role=');
-    const platformRole = document.cookie.includes('platform_role=');
+    // Use roles from session if available, otherwise check cookies
+    let platformRole = roles?.platformRole;
+    let tenantRole = roles?.tenantRole;
+    let tenantSlug = roles?.tenantSlug;
     
-    // If user has admin/owner role, redirect to admin
-    if (adminRole || platformRole) {
+    if (!platformRole && !tenantRole) {
+      // Fallback to cookie check
+      platformRole = document.cookie.includes('platform_role=') ? 'ADMIN' : undefined;
+      tenantRole = document.cookie.includes('tenant_role=') ? 'admin' : undefined;
+      tenantSlug = document.cookie.includes('tenant_slug=') ? 'demo-store' : undefined;
+    }
+    
+    // Platform admin redirect
+    if (platformRole) {
       return '/admin/platform';
+    }
+    
+    // Tenant admin/owner redirect
+    if (tenantRole && ['admin', 'owner'].includes(tenantRole) && tenantSlug) {
+      return `/admin/${tenantSlug}/overview`;
     }
     
     // Default to storefront account page
@@ -54,8 +67,14 @@ function SignInContent() {
       await signIn(email, password);
       toast.success('Signed in successfully!');
       
-      // Use window.location.href for a full page redirect to avoid hydration issues
-      window.location.href = getRedirectUrl();
+      // Get roles from session and redirect accordingly
+      const idToken = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
+      if (idToken) {
+        const roles = await createSession(idToken);
+        window.location.href = getRedirectUrl(roles);
+      } else {
+        window.location.href = getRedirectUrl();
+      }
     } catch (error: any) {
       toast.error(error.message || 'Sign in failed');
     } finally {
@@ -71,8 +90,14 @@ function SignInContent() {
       await signInWithGoogle();
       toast.success('Signed in successfully!');
       
-      // Use window.location.href for a full page redirect to avoid hydration issues
-      window.location.href = getRedirectUrl();
+      // Get roles from session and redirect accordingly
+      const idToken = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
+      if (idToken) {
+        const roles = await createSession(idToken);
+        window.location.href = getRedirectUrl(roles);
+      } else {
+        window.location.href = getRedirectUrl();
+      }
     } catch (error: any) {
       toast.error(error.message || 'Google sign in failed');
     } finally {
