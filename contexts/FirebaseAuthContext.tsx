@@ -35,7 +35,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithPhone: (phoneNumber: string) => Promise<ConfirmationResult>;
+  signInWithPhone: (phoneNumber: string) => Promise<any>;
   confirmPhoneCode: (confirmationResult: ConfirmationResult, code: string) => Promise<void>;
   signOutUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -130,7 +130,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  const signInWithPhone = async (phoneNumber: string): Promise<ConfirmationResult> => {
+  const signInWithPhone = async (phoneNumber: string): Promise<any> => {
     if (!typedAuth || !signInWithPhoneNumber) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
