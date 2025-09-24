@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db'
+import { getTenantDocuments } from '@/lib/db'
 
 function transliterateArabicToLatin(input: string): string {
 	const map: Record<string, string> = {

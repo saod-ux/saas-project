@@ -1,16 +1,9 @@
-import { prismaRW } from "@/lib/db";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 import { Search, Eye, Globe, AlertTriangle } from "lucide-react";
 
 export default async function SEOStats() {
   // Get all tenants with their SEO settings
-  const tenants = await prismaRW.tenant.findMany({
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      settingsJson: true,
-    }
-  });
+  const tenants = await getTenantDocuments('tenants', '');
 
   // Analyze SEO settings
   const stats = {
@@ -22,8 +15,8 @@ export default async function SEOStats() {
     incomplete: 0,
   };
 
-  tenants.forEach(tenant => {
-    const settings = tenant.settingsJson as any;
+  tenants.forEach((tenant: any) => {
+    const settings = tenant.settings as any; // Changed from settingsJson to settings
     const seo = settings?.seo || {};
     
     if (seo.metaTitle) stats.withMetaTitle++;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prismaRW } from "@/lib/db";
+import { getTenantDocuments, updateDocument } from "@/lib/firebase/tenant";
 import dns from "dns";
 import { promisify } from "util";
 
@@ -11,16 +11,8 @@ export async function PUT(
 ) {
   try {
     // Find domain record
-    const domainRecord = await prismaRW.domain.findUnique({
-      where: { id: params.id },
-      select: {
-        id: true,
-        domain: true,
-        tenantId: true,
-        dnsStatus: true,
-        verified: true
-      }
-    });
+    const allDomains = await getTenantDocuments('domains', '');
+    const domainRecord = allDomains.find((d: any) => d.id === params.id);
 
     if (!domainRecord) {
       return NextResponse.json(
@@ -46,30 +38,11 @@ export async function PUT(
     }
 
     // Update domain status
-    const updatedDomain = await prismaRW.domain.update({
-      where: { id: domainRecord.id },
-      data: {
-        dnsStatus: dnsVerified ? 'VERIFIED' : 'INVALID',
-        verified: dnsVerified,
-        verifiedAt: dnsVerified ? new Date() : null,
-        lastCheckedAt: new Date()
-      },
-      select: {
-        id: true,
-        domain: true,
-        dnsStatus: true,
-        sslStatus: true,
-        verified: true,
-        verifiedAt: true,
-        lastCheckedAt: true,
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        }
-      }
+    const updatedDomain = await updateDocument('domains', domainRecord.id, {
+      dnsStatus: dnsVerified ? 'VERIFIED' : 'INVALID',
+      verified: dnsVerified,
+      verifiedAt: dnsVerified ? new Date() : null,
+      lastCheckedAt: new Date()
     });
 
     return NextResponse.json({

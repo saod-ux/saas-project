@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -18,28 +18,13 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "10");
     
-    const orders = await prisma.order.findMany({
-      where: { tenantId: tenant.id },
-      select: {
-        id: true,
-        orderNumber: true,
-        customerJson: true,
-        status: true,
-        total: true,
-        createdAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
-      },
-      orderBy: { createdAt: "desc" },
-      take: Math.min(limit, 50) // Cap at 50 for performance
-    });
+    const allOrders = await getTenantDocuments('orders', tenant.id);
+    const orders = allOrders
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, Math.min(limit, 50)); // Cap at 50 for performance
 
     // Transform orders to include customer info
-    const transformedOrders = orders.map(order => {
+    const transformedOrders = orders.map((order: any) => {
       const customerJson = order.customerJson as any;
       return {
         id: order.id,

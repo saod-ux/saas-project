@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/db";
 
 export default async function RevenueOverview() {
   // Mock revenue data - replace with actual billing calculations

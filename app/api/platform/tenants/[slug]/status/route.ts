@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prismaRW } from '@/lib/db'
+import { getTenantBySlug, updateTenant, getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
 import { requirePlatformRole } from '@/lib/auth'
 
 export const runtime = "nodejs"
@@ -29,24 +29,7 @@ export async function PATCH(
     const validatedData = updateStatusSchema.parse(body)
     
     // Check if tenant exists
-    const existingTenant = await prismaRW.tenant.findUnique({
-      where: { slug },
-      select: { 
-        id: true, 
-        name: true, 
-        status: true,
-        memberships: {
-          select: {
-            user: {
-              select: {
-                email: true,
-                name: true
-              }
-            }
-          }
-        }
-      }
-    })
+    const existingTenant = await getTenantBySlug(slug);
 
     if (!existingTenant) {
       return NextResponse.json(
@@ -64,48 +47,44 @@ export async function PATCH(
     }
 
     // Update tenant status
-    const updatedTenant = await prismaRW.tenant.update({
-      where: { slug },
-      data: { 
-        status: validatedData.status,
-        updatedAt: new Date()
-      },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        status: true,
-        updatedAt: true
-      }
-    })
+    const updatedTenant = await updateTenant(existingTenant.id, { 
+      status: validatedData.status,
+      updatedAt: new Date()
+    });
 
     // Log the status change
-    await prismaRW.auditLog.create({
-      data: {
-        tenantId: existingTenant.id,
-        actorUserId: userId,
-        action: 'TENANT_STATUS_CHANGED',
-        targetType: 'TENANT',
-        targetId: existingTenant.id,
-        meta: {
-          oldStatus: existingTenant.status,
-          newStatus: validatedData.status,
-          reason: validatedData.reason,
-          notes: validatedData.notes,
-          changedBy: userId
-        }
-      }
-    })
+    await createDocument('auditLogs', {
+      tenantId: existingTenant.id,
+      actorUserId: userId,
+      action: 'TENANT_STATUS_CHANGED',
+      targetType: 'TENANT',
+      targetId: existingTenant.id,
+      meta: {
+        oldStatus: existingTenant.status,
+        newStatus: validatedData.status,
+        reason: validatedData.reason,
+        notes: validatedData.notes,
+        changedBy: userId
+      },
+      createdAt: new Date()
+    });
 
     // If suspending, notify tenant members
     if (validatedData.status === 'SUSPENDED') {
       // TODO: Send notification emails to tenant members
-      console.log(`Tenant ${slug} suspended. Notifying ${existingTenant.memberships.length} members.`)
+      const allMemberships = await getTenantDocuments('memberships', existingTenant.id);
+      console.log(`Tenant ${slug} suspended. Notifying ${allMemberships.length} members.`)
     }
 
     return NextResponse.json({
       ok: true,
-      data: updatedTenant,
+      data: {
+        id: updatedTenant.id,
+        slug: updatedTenant.slug,
+        name: updatedTenant.name,
+        status: updatedTenant.status,
+        updatedAt: updatedTenant.updatedAt
+      },
       message: `Tenant status updated to ${validatedData.status}`
     })
 
@@ -138,36 +117,7 @@ export async function GET(
     
     const { slug } = params
 
-    const tenant = await prismaRW.tenant.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        memberships: {
-          select: {
-            user: {
-              select: {
-                email: true,
-                name: true
-              }
-            },
-            role: true,
-            status: true
-          }
-        },
-        _count: {
-          select: {
-            products: true,
-            orders: true,
-            memberships: true
-          }
-        }
-      }
-    })
+    const tenant = await getTenantBySlug(slug);
 
     if (!tenant) {
       return NextResponse.json(
@@ -176,9 +126,42 @@ export async function GET(
       )
     }
 
+    // Get related data
+    const allMemberships = await getTenantDocuments('memberships', tenant.id);
+    const allUsers = await getTenantDocuments('users', '');
+    const allProducts = await getTenantDocuments('products', tenant.id);
+    const allOrders = await getTenantDocuments('orders', tenant.id);
+
+    const memberships = allMemberships.map((membership: any) => {
+      const user = allUsers.find((u: any) => u.id === membership.userId);
+      return {
+        user: user ? {
+          email: user.email,
+          name: user.name
+        } : null,
+        role: membership.role,
+        status: membership.status
+      };
+    });
+
+    const tenantWithCounts = {
+      id: tenant.id,
+      slug: tenant.slug,
+      name: tenant.name,
+      status: tenant.status,
+      createdAt: tenant.createdAt,
+      updatedAt: tenant.updatedAt,
+      memberships,
+      _count: {
+        products: allProducts.length,
+        orders: allOrders.length,
+        memberships: allMemberships.length
+      }
+    };
+
     return NextResponse.json({
       ok: true,
-      data: tenant
+      data: tenantWithCounts
     })
 
   } catch (error) {

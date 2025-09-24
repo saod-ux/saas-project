@@ -54,6 +54,7 @@ export const COLLECTIONS = {
   PLATFORM_ADMINS: 'platformAdmins',
   MEMBERSHIPS: 'memberships',
   PAGES: 'pages',
+  DOMAINS: 'domains',
 } as const;
 
 // Helper function to convert Firestore timestamp to Date

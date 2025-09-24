@@ -1,23 +1,34 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 import { Mail, Calendar, Shield, Eye } from "lucide-react";
 
 export default async function UsersTable() {
-  const users = await prisma.user.findMany({
-    include: {
-        memberships: {
-          include: {
-            tenant: {
-              select: {
-                name: true,
-                slug: true
-              }
-            }
-          }
-        }
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50 // Limit for performance
-  });
+  // Get all users, memberships, and tenants from Firestore
+  const allUsers = await getTenantDocuments('users', '');
+  const allMemberships = await getTenantDocuments('memberships', '');
+  const allTenants = await getTenantDocuments('tenants', '');
+  
+  // Join users with their memberships and tenant information
+  const users = allUsers
+    .map((user: any) => {
+      const userMemberships = allMemberships.filter((m: any) => m.userId === user.id);
+      const memberships = userMemberships.map((membership: any) => {
+        const tenant = allTenants.find((t: any) => t.id === membership.tenantId);
+        return {
+          ...membership,
+          tenant: tenant ? {
+            name: tenant.name,
+            slug: tenant.slug
+          } : null
+        };
+      }).filter((m: any) => m.tenant !== null);
+      
+      return {
+        ...user,
+        memberships
+      };
+    })
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 50); // Limit for performance
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -47,8 +58,8 @@ export default async function UsersTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => {
-              const merchants = user.memberships.map(member => ({
+            {users.map((user: any) => {
+              const merchants = user.memberships.map((member: any) => ({
                 name: member.tenant.name,
                 slug: member.tenant.slug,
                 role: member.role
@@ -82,14 +93,14 @@ export default async function UsersTable() {
                       {merchants.length} merchant{merchants.length !== 1 ? 's' : ''}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {merchants.slice(0, 2).map(m => m.name).join(", ")}
+                      {merchants.slice(0, 2).map((m: any) => m.name).join(", ")}
                       {merchants.length > 2 && ` +${merchants.length - 2} more`}
                     </div>
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-wrap gap-1">
-                      {merchants.slice(0, 2).map((merchant, index) => (
+                      {merchants.slice(0, 2).map((merchant: any, index: number) => (
                         <span
                           key={index}
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

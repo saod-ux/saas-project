@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments, updateDocument, deleteDocument } from '@/lib/db'
 import { requireTenantAndRole } from '@/lib/rbac'
 
 export const runtime = "nodejs"
@@ -33,54 +33,57 @@ export async function GET(
     
     const { tenant } = result
     
-    const product = await prismaRW.product.findFirst({
-      where: {
-        id: params.id,
-        tenantId: tenant.id
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        price: true,
-        currency: true,
-        status: true,
-        isBestSeller: true,
-        isNewArrival: true,
-        isOnOffer: true,
-        featured: true,
-        stock: true,
-        lowStockThreshold: true,
-        primaryCategoryId: true,
-        imageUrl: true,
-        gallery: true,
-        productImages: {
-          select: {
-            id: true,
-            url: true,
-            isPrimary: true
-          }
-        },
-        primaryCategory: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
+    // Get product from Firestore
+    const products = await getTenantDocuments('products', tenant.id)
+    const product = products.find((p: any) => p.id === params.id)
+    
+    if (product) {
+      // Get product images and primary category
+      const productImages = await getTenantDocuments('productImages', tenant.id)
+      const categories = await getTenantDocuments('categories', tenant.id)
+      
+      const productImagesForProduct = productImages.filter((img: any) => img.productId === product.id)
+      const primaryCategory = product.primaryCategoryId ? 
+        categories.find((c: any) => c.id === product.primaryCategoryId) : null
+      
+      // Transform to match expected format
+      const transformedProduct = {
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        currency: product.currency,
+        status: product.status,
+        isBestSeller: product.isBestSeller,
+        isNewArrival: product.isNewArrival,
+        isOnOffer: product.isOnOffer,
+        featured: product.featured,
+        stock: product.stock,
+        lowStockThreshold: product.lowStockThreshold,
+        primaryCategoryId: product.primaryCategoryId,
+        imageUrl: product.imageUrl,
+        gallery: product.gallery,
+        productImages: productImagesForProduct.map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          isPrimary: img.isPrimary
+        })),
+        primaryCategory: primaryCategory ? {
+          id: primaryCategory.id,
+          name: primaryCategory.name
+        } : null
       }
-    })
-
-    if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      )
+      
+      return NextResponse.json({
+        ok: true,
+        data: transformedProduct
+      })
     }
 
-    return NextResponse.json({
-      ok: true,
-      data: product
-    })
+    return NextResponse.json(
+      { error: 'Product not found' },
+      { status: 404 }
+    )
 
   } catch (error) {
     console.error('Error fetching product:', error)
@@ -107,12 +110,8 @@ export async function PUT(
     console.log('Validated product data:', validatedData) // Debug log
     
     // Check if product exists and belongs to tenant
-    const existingProduct = await prismaRW.product.findFirst({
-      where: {
-        id: params.id,
-        tenantId: tenant.id
-      }
-    })
+    const products = await getTenantDocuments('products', tenant.id)
+    const existingProduct = products.find((p: any) => p.id === params.id)
 
     if (!existingProduct) {
       return NextResponse.json(
@@ -122,36 +121,34 @@ export async function PUT(
     }
 
     // Update product
-    const updatedProduct = await prismaRW.product.update({
-      where: { id: params.id },
-      data: {
-        title: validatedData.title,
-        description: validatedData.description,
-        price: validatedData.price,
-        currency: validatedData.currency,
-        status: validatedData.status,
-        isBestSeller: validatedData.isBestSeller,
-        isNewArrival: validatedData.isNewArrival,
-        isOnOffer: validatedData.isOnOffer,
-        featured: validatedData.featured,
-        stock: validatedData.stockQuantity,
-        lowStockThreshold: validatedData.lowStockThreshold,
-        primaryCategoryId: validatedData.primaryCategoryId || null,
-        imageUrl: validatedData.imageUrl || null,
-        gallery: validatedData.images || [],
-        updatedAt: new Date()
-      },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        updatedAt: true
-      }
-    })
+    const updateData = {
+      title: validatedData.title,
+      description: validatedData.description,
+      price: validatedData.price,
+      currency: validatedData.currency,
+      status: validatedData.status,
+      isBestSeller: validatedData.isBestSeller,
+      isNewArrival: validatedData.isNewArrival,
+      isOnOffer: validatedData.isOnOffer,
+      featured: validatedData.featured,
+      stock: validatedData.stockQuantity,
+      lowStockThreshold: validatedData.lowStockThreshold,
+      primaryCategoryId: validatedData.primaryCategoryId || null,
+      imageUrl: validatedData.imageUrl || null,
+      gallery: validatedData.images || [],
+      updatedAt: new Date()
+    }
+    
+    const updatedProduct = await updateDocument('products', params.id, updateData)
 
     return NextResponse.json({
       ok: true,
-      data: updatedProduct,
+      data: {
+        id: params.id,
+        title: validatedData.title,
+        status: validatedData.status,
+        updatedAt: new Date()
+      },
       message: 'Product updated successfully'
     })
 
@@ -183,12 +180,8 @@ export async function DELETE(
     const { tenant } = result
     
     // Check if product exists and belongs to tenant
-    const existingProduct = await prismaRW.product.findFirst({
-      where: {
-        id: params.id,
-        tenantId: tenant.id
-      }
-    })
+    const products = await getTenantDocuments('products', tenant.id)
+    const existingProduct = products.find((p: any) => p.id === params.id)
 
     if (!existingProduct) {
       return NextResponse.json(
@@ -197,10 +190,8 @@ export async function DELETE(
       )
     }
 
-    // Delete product (cascade will handle related records)
-    await prismaRW.product.delete({
-      where: { id: params.id }
-    })
+    // Delete product
+    await deleteDocument('products', params.id)
 
     return NextResponse.json({
       ok: true,

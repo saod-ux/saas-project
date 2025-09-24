@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments } from '@/lib/firebase/tenant'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,22 +14,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all tenants where the user has a membership
-    const memberships = await prismaRW.membership.findMany({
-      where: {
-        userId: user.id
-      },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        }
-      }
-    })
+    const allMemberships = await getTenantDocuments('memberships', '');
+    const userMemberships = allMemberships.filter((m: any) => m.userId === user.id);
 
-    const tenants = memberships.map(membership => membership.tenant)
+    // Get tenant details for each membership
+    const allTenants = await getTenantDocuments('tenants', '');
+    const tenants = userMemberships.map((membership: any) => {
+      const tenant = allTenants.find((t: any) => t.id === membership.tenantId);
+      return tenant ? {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug
+      } : null;
+    }).filter(Boolean);
 
     return NextResponse.json({ 
       data: tenants,

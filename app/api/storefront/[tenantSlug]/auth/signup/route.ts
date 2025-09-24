@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prismaRW } from '@/lib/db';
-import { loadTenantBySlug } from '@/lib/loadTenant';
-import { findTenantUserByEmail, createTenantUser } from '@/lib/tenant-user';
+import { getTenantBySlug, getTenantDocuments, createDocument, updateDocument } from '@/lib/firebase/tenant';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -21,7 +19,7 @@ export async function POST(
     const { tenantSlug } = params;
     
     // Load tenant
-    const tenant = await loadTenantBySlug(tenantSlug);
+    const tenant = await getTenantBySlug(tenantSlug);
     if (!tenant) {
       return NextResponse.json(
         { ok: false, error: 'Store not found' },
@@ -34,7 +32,11 @@ export async function POST(
     const { email, password, name, phone } = validatedData;
 
     // Check if customer already exists
-    const existingCustomer = await findTenantUserByEmail(tenant.id, email);
+    const allUsers = await getTenantDocuments('users', '');
+    const existingCustomer = allUsers.find((user: any) => 
+      user.email === email && user.tenantId === tenant.id
+    );
+    
     if (existingCustomer) {
       return NextResponse.json(
         { ok: false, error: 'An account with this email already exists' },
@@ -46,12 +48,14 @@ export async function POST(
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create customer
-    const customer = await createTenantUser({
+    const customer = await createDocument('users', {
       tenantId: tenant.id,
       email,
       name,
       phone,
       isGuest: false,
+      password: hashedPassword,
+      createdAt: new Date()
     });
 
     if (!customer) {
@@ -60,12 +64,6 @@ export async function POST(
         { status: 500 }
       );
     }
-
-    // Update customer with password
-    const updatedCustomer = await prismaRW.tenantUser.update({
-      where: { id: customer.id },
-      data: { password: hashedPassword },
-    });
 
     // Generate JWT token
     const token = jwt.sign(

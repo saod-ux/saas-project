@@ -15,3 +15,5 @@ export default function ShippingPolicyPage({ params }: { params: { tenantSlug: s
 
 
 
+
+

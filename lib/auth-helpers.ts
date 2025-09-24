@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/db";
 import { NextRequest } from "next/server";
 
 export interface TenantUser {

@@ -1,25 +1,23 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 
 export default async function TopMerchants() {
-  const merchants = await prisma.tenant.findMany({
-    include: {
-      products: {
-        select: {
-          id: true
-        }
-      },
-      categories: {
-        select: {
-          id: true
-        }
-      }
-    },
-    orderBy: { createdAt: "desc" },
-    take: 10
-  });
+  // Fetch data from Firestore
+  const allTenants = await getTenantDocuments('tenants', '');
+  const allProducts = await getTenantDocuments('products', '');
+  const allCategories = await getTenantDocuments('categories', '');
+  
+  // Sort by creation date and take top 10
+  const merchants = allTenants
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10)
+    .map((merchant: any) => ({
+      ...merchant,
+      products: allProducts.filter((p: any) => p.tenantId === merchant.id).map((p: any) => ({ id: p.id })),
+      categories: allCategories.filter((c: any) => c.tenantId === merchant.id).map((c: any) => ({ id: c.id }))
+    }));
 
   // Mock performance data - in a real app, you'd track actual metrics
-  const merchantsWithStats = merchants.map(merchant => ({
+  const merchantsWithStats = merchants.map((merchant: any) => ({
     ...merchant,
     // Mock stats
     pageViews: Math.floor(Math.random() * 10000) + 1000,
@@ -28,7 +26,7 @@ export default async function TopMerchants() {
   }));
 
   const topMerchants = merchantsWithStats
-    .sort((a, b) => b.pageViews - a.pageViews)
+    .sort((a: any, b: any) => b.pageViews - a.pageViews)
     .slice(0, 5);
 
   return (
@@ -36,7 +34,7 @@ export default async function TopMerchants() {
       <h3 className="text-lg font-medium text-gray-900 mb-4">Top Performing Merchants</h3>
       
       <div className="space-y-4">
-        {topMerchants.map((merchant, index) => (
+        {topMerchants.map((merchant: any, index: number) => (
           <div key={merchant.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
             <div className="flex items-center">
               <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">

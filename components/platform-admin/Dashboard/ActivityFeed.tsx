@@ -1,21 +1,21 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 
 export default async function ActivityFeed() {
   // Fetch recent activity - this is a simplified version
   // In a real app, you'd have an activity log table
-  const recentTenants = await prisma.tenant.findMany({
-    take: 5,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      createdAt: true,
-      status: true
-    }
-  });
+  const allTenants = await getTenantDocuments('tenants', '');
+  const recentTenants = allTenants
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5)
+    .map((tenant: any) => ({
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      createdAt: tenant.createdAt,
+      status: tenant.status
+    }));
 
-  const activities = recentTenants.map(tenant => ({
+  const activities = recentTenants.map((tenant: any) => ({
     id: tenant.id,
     type: "merchant_created",
     title: `New merchant created: ${tenant.name}`,
@@ -29,7 +29,7 @@ export default async function ActivityFeed() {
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
       <div className="space-y-4">
         {activities.length > 0 ? (
-          activities.map((activity) => (
+          activities.map((activity: any) => (
             <div key={activity.id} className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <div className={`w-2 h-2 rounded-full mt-2 ${

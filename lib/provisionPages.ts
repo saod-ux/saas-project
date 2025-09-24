@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments, createDocument } from "@/lib/db";
 
 export async function provisionDefaultPages(tenantId: string, lang: 'en' | 'ar') {
   const pages = [

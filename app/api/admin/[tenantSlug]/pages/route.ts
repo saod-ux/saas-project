@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments, createDocument } from "@/lib/db";
 import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -14,10 +14,7 @@ export async function GET(
     
     const { tenant } = result;
     
-    const pages = await prisma.page.findMany({
-      where: { tenantId: tenant.id },
-      orderBy: { createdAt: "desc" },
-    });
+    const pages = await getTenantDocuments('pages', tenant.id)
 
     return NextResponse.json({ ok: true, data: pages });
   } catch (error) {

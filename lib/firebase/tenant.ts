@@ -11,7 +11,7 @@ import {
 } from './db';
 
 // Re-export the missing functions and constants
-export { getTenantDocuments, COLLECTIONS };
+export { getTenantDocuments, COLLECTIONS, createDocument, updateDocument, deleteDocument };
 
 // Tenant operations
 export const getTenantBySlug = async (slug: string) => {

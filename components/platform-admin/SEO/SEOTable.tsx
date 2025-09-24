@@ -1,21 +1,15 @@
-import { prismaRW } from "@/lib/db";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 import Link from "next/link";
 import { CheckCircle, XCircle, AlertTriangle, ExternalLink, Settings, Search, Eye, Image } from "lucide-react";
 
 export default async function SEOTable() {
   // Get all tenants with their SEO settings
-  const tenants = await prismaRW.tenant.findMany({
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      settingsJson: true,
-    },
-    orderBy: { createdAt: "desc" }
-  });
+  const allTenants = await getTenantDocuments('tenants', '');
+  const tenants = allTenants
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const getSEOStatus = (tenant: any) => {
-    const settings = tenant.settingsJson as any;
+    const settings = tenant.settings as any; // Changed from settingsJson to settings
     const seo = settings?.seo || {};
     
     const hasMetaTitle = !!seo.metaTitle;
@@ -88,8 +82,8 @@ export default async function SEOTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {tenants.map((tenant) => {
-              const settings = tenant.settingsJson as any;
+            {tenants.map((tenant: any) => {
+              const settings = tenant.settings as any; // Changed from settingsJson to settings
               const seo = settings?.seo || {};
               const seoStatus = getSEOStatus(tenant);
               const StatusIcon = seoStatus.icon;

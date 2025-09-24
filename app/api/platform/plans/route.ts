@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
 import { requirePlatformRole } from '@/lib/auth'
 
 export const runtime = "nodejs"
@@ -33,26 +33,29 @@ export async function GET(request: NextRequest) {
     const gate = await requirePlatformRole(request, "SUPER_ADMIN")
     if (gate instanceof NextResponse) return gate
     
-    const plans = await prismaRW.plan.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        currency: true,
-        interval: true,
-        features: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            subscriptions: true
+    const allPlans = await getTenantDocuments('plans', '');
+    const allSubscriptions = await getTenantDocuments('subscriptions', '');
+    
+    const plans = allPlans
+      .map((plan: any) => {
+        const subscriptionCount = allSubscriptions.filter((sub: any) => sub.planId === plan.id).length;
+        return {
+          id: plan.id,
+          name: plan.name,
+          description: plan.description,
+          price: plan.price,
+          currency: plan.currency,
+          interval: plan.interval,
+          features: plan.features,
+          isActive: plan.isActive,
+          createdAt: plan.createdAt,
+          updatedAt: plan.updatedAt,
+          _count: {
+            subscriptions: subscriptionCount
           }
-        }
-      },
-      orderBy: { price: 'asc' }
-    })
+        };
+      })
+      .sort((a: any, b: any) => a.price - b.price);
 
     return NextResponse.json({
       ok: true,
@@ -76,28 +79,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = createPlanSchema.parse(body)
     
-    const plan = await prismaRW.plan.create({
-      data: {
-        name: validatedData.name,
-        description: validatedData.description,
-        price: validatedData.price,
-        currency: validatedData.currency,
-        interval: validatedData.interval,
-        features: validatedData.features,
-        isActive: validatedData.isActive
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        currency: true,
-        interval: true,
-        features: true,
-        isActive: true,
-        createdAt: true
-      }
-    })
+    const plan = await createDocument('plans', {
+      name: validatedData.name,
+      description: validatedData.description,
+      price: validatedData.price,
+      currency: validatedData.currency,
+      interval: validatedData.interval,
+      features: validatedData.features,
+      isActive: validatedData.isActive,
+      createdAt: new Date()
+    });
 
     return NextResponse.json({
       ok: true,

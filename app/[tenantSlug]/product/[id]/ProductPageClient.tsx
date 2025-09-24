@@ -16,6 +16,7 @@ interface Product {
   currency: string;
   imageUrl: string | null;
   gallery: string[];
+  sku?: string | null;
   primaryCategoryId?: string | null;
   categories?: {
     name: string;

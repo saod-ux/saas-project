@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveTenantBySlug } from '@/lib/tenant'
+import { getTenantBySlug, getTenantDocuments } from '@/lib/firebase/tenant'
 import { requireRole } from '@/lib/auth'
-import { prismaRO } from '@/lib/db'
 
 enum UserRole {
   OWNER = 'OWNER',
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    const tenant = await resolveTenantBySlug(tenantSlug)
+    const tenant = await getTenantBySlug(tenantSlug)
     
     if (!tenant) {
       return NextResponse.json(
@@ -33,23 +32,23 @@ export async function GET(request: NextRequest) {
     // Require VIEWER role to list members
     await requireRole(tenant.id, UserRole.VIEWER)
     
-    const members = await prismaRO.membership.findMany({
-      where: {
-        tenantId: tenant.id
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true
-          }
+    const allMemberships = await getTenantDocuments('memberships', tenant.id)
+    const allUsers = await getTenantDocuments('users', '')
+    
+    const members = allMemberships
+      .map((membership: any) => {
+        const user = allUsers.find((u: any) => u.id === membership.userId)
+        return {
+          ...membership,
+          user: user ? {
+            id: user.id,
+            email: user.email,
+            name: user.name
+          } : null
         }
-      },
-      orderBy: {
-        createdAt: 'asc'
-      }
-    })
+      })
+      .filter((m: any) => m.user !== null)
+      .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     
     return NextResponse.json({
       data: members

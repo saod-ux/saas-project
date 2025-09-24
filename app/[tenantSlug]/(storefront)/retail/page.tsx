@@ -52,7 +52,7 @@ export default async function RetailPage({ params }:{
       .get();
 
     heroSlides = heroSlidesSnapshot.docs
-      .map(doc => ({
+      .map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.seconds ? new Date(doc.data().createdAt.seconds * 1000).toISOString() : new Date().toISOString(),

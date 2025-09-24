@@ -1,29 +1,27 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 import Link from "next/link";
 import { CheckCircle, XCircle, Clock, ExternalLink, Settings, RefreshCw } from "lucide-react";
 
 export default async function DomainsTable() {
-  // Get all domains with their tenant information
-  const domains = await prisma.domain.findMany({
-    select: {
-      id: true,
-      domain: true,
-      dnsStatus: true,
-      sslStatus: true,
-      verified: true,
-      verifiedAt: true,
-      lastCheckedAt: true,
-      createdAt: true,
-      tenant: {
-        select: {
-          id: true,
-          name: true,
-          slug: true
-        }
-      }
-    },
-    orderBy: { createdAt: "desc" }
-  });
+  // Get all domains and tenants from Firestore
+  const allDomains = await getTenantDocuments('domains', '');
+  const allTenants = await getTenantDocuments('tenants', '');
+  
+  // Join domains with their tenant information
+  const domains = allDomains
+    .map((domain: any) => {
+      const tenant = allTenants.find((t: any) => t.id === domain.tenantId);
+      return {
+        ...domain,
+        tenant: tenant ? {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug
+        } : null
+      };
+    })
+    .filter((domain: any) => domain.tenant !== null) // Only include domains with valid tenants
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const getDnsStatusIcon = (status: string) => {
     switch (status) {
@@ -102,7 +100,7 @@ export default async function DomainsTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {domains.map((domain) => (
+            {domains.map((domain: any) => (
               <tr key={domain.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">

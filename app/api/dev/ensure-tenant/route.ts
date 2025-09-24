@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getTenantBySlug, createDocument, updateDocument } from "@/lib/firebase/tenant";
 
 export async function POST(req: Request) {
   if (process.env.NODE_ENV !== "development") {
@@ -9,10 +9,18 @@ export async function POST(req: Request) {
   if (!slug || !name) {
     return NextResponse.json({ ok: false, error: "slug and name are required" }, { status: 400 });
   }
-  const data = await prisma.tenant.upsert({
-    where: { slug },
-    update: { name, logoUrl },
-    create: { slug, name, logoUrl },
-  });
+  
+  // Check if tenant exists
+  const existingTenant = await getTenantBySlug(slug);
+  
+  let data;
+  if (existingTenant) {
+    // Update existing tenant
+    data = await updateDocument('tenants', existingTenant.id, { name, logoUrl });
+  } else {
+    // Create new tenant
+    data = await createDocument('tenants', { slug, name, logoUrl });
+  }
+  
   return NextResponse.json({ ok: true, data });
 }

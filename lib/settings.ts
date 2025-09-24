@@ -33,6 +33,7 @@ export const socialLinksSchema = z.object({
   twitter: z.string().optional(),
   whatsapp: z.string().optional(),
   tiktok: z.string().optional(),
+  snapchat: z.string().optional(),
   website: z.string().optional(),
 })
 

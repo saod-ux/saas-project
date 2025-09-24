@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prismaRW } from '@/lib/db';
+import { getTenantDocuments } from '@/lib/db';
 import { loadTenantBySlug } from '@/lib/loadTenant';
 import { getCustomerWithSession } from '@/lib/customer-auth';
 
@@ -29,35 +29,39 @@ export async function GET(
     }
 
     // Get customer orders
-    const orders = await prismaRW.order.findMany({
-      where: {
-        tenantId: tenant.id,
-        tenantUserId: customer.id,
-      },
-      include: {
-        orderItems: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                price: true,
-                currency: true,
-                images: true,
-              }
-            }
-          }
+    const orders = await getTenantDocuments('orders', tenant.id)
+    const customerOrders = orders.filter((order: any) => order.tenantUserId === customer.id)
+    
+    // Get order items and products for each order
+    const orderItems = await getTenantDocuments('orderItems', tenant.id)
+    const products = await getTenantDocuments('products', tenant.id)
+    
+    const ordersWithItems = customerOrders.map((order: any) => {
+      const items = orderItems.filter((item: any) => item.orderId === order.id)
+      const itemsWithProducts = items.map((item: any) => {
+        const product = products.find((p: any) => p.id === item.productId)
+        return {
+          ...item,
+          product: product ? {
+            id: product.id,
+            name: product.title,
+            slug: product.slug,
+            price: product.price,
+            currency: product.currency,
+            images: product.gallery || []
+          } : null
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
+      })
+      
+      return {
+        ...order,
+        orderItems: itemsWithProducts
       }
-    });
+    }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return NextResponse.json({
       ok: true,
-      data: orders
+      data: ordersWithItems
     });
 
   } catch (error) {

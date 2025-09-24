@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPaymentAdapter } from '@/lib/payments/factory';
-import { prisma } from '@/lib/prisma';
+import { getTenantDocuments, updateDocument, createDocument } from '@/lib/firebase/tenant';
 import { logAction } from '@/lib/rbac';
 
 export const runtime = 'nodejs';
@@ -19,10 +19,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the payment record
-    const payment = await prisma.payment.findFirst({
-      where: { externalId },
-      include: { tenant: true }
-    });
+    const allPayments = await getTenantDocuments('payments', '');
+    const payment = allPayments.find((p: any) => p.externalId === externalId);
 
     if (!payment) {
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
@@ -46,22 +44,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create webhook event record
-    await prisma.webhookEvent.create({
-      data: {
-        provider: 'TAP',
-        raw: webhookData,
-        processed: true
-      }
+    await createDocument('webhookEvents', {
+      provider: 'TAP',
+      raw: webhookData,
+      processed: true
     });
 
     // Update payment status
-    const updatedPayment = await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: verificationResult.status as any,
-        rawPayload: webhookData,
-        updatedAt: new Date()
-      }
+    const updatedPayment = await updateDocument('payments', payment.id, {
+      status: verificationResult.status as any,
+      rawPayload: webhookData,
+      updatedAt: new Date()
     });
 
     // Log action
@@ -81,9 +74,8 @@ export async function POST(request: NextRequest) {
 
     // If payment succeeded, update order status
     if (verificationResult.status === 'SUCCEEDED' && payment.orderId) {
-      await prisma.order.update({
-        where: { id: payment.orderId },
-        data: { status: 'CONFIRMED' }
+      await updateDocument('orders', payment.orderId, {
+        status: 'CONFIRMED'
       });
 
       await logAction({
@@ -107,12 +99,10 @@ export async function POST(request: NextRequest) {
     
     // Log webhook event even if processing failed
     try {
-      await prisma.webhookEvent.create({
-        data: {
-          provider: 'TAP',
-          raw: { error: error instanceof Error ? error.message : String(error) },
-          processed: false
-        }
+      await createDocument('webhookEvents', {
+        provider: 'TAP',
+        raw: { error: error instanceof Error ? error.message : String(error) },
+        processed: false
       });
     } catch (logError) {
       console.error('Failed to log webhook error:', logError);

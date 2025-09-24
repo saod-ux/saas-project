@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prismaRW } from '@/lib/db';
+import { getTenantDocuments } from '@/lib/db';
 import { loadTenantBySlug } from '@/lib/loadTenant';
 import { getTenantUserById } from '@/lib/tenant-user';
 import jwt from 'jsonwebtoken';

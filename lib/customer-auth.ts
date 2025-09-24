@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { prismaRW } from './db';
 import { getTenantUserById } from './tenant-user';
 
 export interface CustomerSession {

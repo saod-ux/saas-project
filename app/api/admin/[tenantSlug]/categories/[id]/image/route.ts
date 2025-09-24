@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments, updateDocument } from "@/lib/firebase/tenant";
 import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -22,31 +22,24 @@ export async function PUT(
     const { imageUrl } = UpdateCategoryImageSchema.parse(body);
 
     // Check if category exists and belongs to tenant
-    const category = await prisma.category.findFirst({
-      where: { 
-        id: params.id, 
-        tenantId: tenant.id 
-      }
-    });
+    const categories = await getTenantDocuments('categories', tenant.id);
+    const category = categories.find((c: any) => c.id === params.id);
 
     if (!category) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
     // Update category image
-    const updated = await prisma.category.update({
-      where: { id: category.id },
-      data: { 
-        imageUrl,
-        updatedAt: new Date()
-      },
+    const updated = await updateDocument('categories', params.id, { 
+      imageUrl,
+      updatedAt: new Date()
     });
 
     return NextResponse.json({ 
       ok: true,
       data: {
         id: updated.id,
-        imageUrl: updated.imageUrl
+        imageUrl: imageUrl
       }
     });
   } catch (error) {

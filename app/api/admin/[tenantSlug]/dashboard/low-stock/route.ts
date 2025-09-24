@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -16,23 +16,22 @@ export async function GET(
     const { tenant } = result;
     
     // Get products with low stock (using a simple threshold of 5 for now)
-    const lowStockProducts = await prisma.product.findMany({
-      where: {
-        tenantId: tenant.id,
-        status: "active",
-        stock: { lte: 5 } // Simple threshold for now
-      },
-      select: {
-        id: true,
-        title: true,
-        stock: true,
-        imageUrl: true
-      },
-      orderBy: { stock: "asc" }
-    });
+    const allProducts = await getTenantDocuments('products', tenant.id);
+    const lowStockProducts = allProducts
+      .filter((product: any) => 
+        product.status === "active" && 
+        product.stock <= 5
+      )
+      .sort((a: any, b: any) => a.stock - b.stock)
+      .map((product: any) => ({
+        id: product.id,
+        title: product.title,
+        stock: product.stock,
+        imageUrl: product.imageUrl
+      }));
 
     // Add lowStockThreshold field with default value
-    const productsWithThreshold = lowStockProducts.map(product => ({
+    const productsWithThreshold = lowStockProducts.map((product: any) => ({
       ...product,
       lowStockThreshold: 5 // Default threshold
     }));

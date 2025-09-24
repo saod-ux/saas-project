@@ -1,5 +1,4 @@
-import { prismaRW } from "@/lib/db";
-import { loadTenantBySlug } from "@/lib/loadTenant";
+import { getTenantBySlug, getTenantDocuments } from "@/lib/firebase/tenant";
 import { notFound } from "next/navigation";
 import ProductPageClient from "./ProductPageClient";
 
@@ -11,28 +10,21 @@ export default async function ProductPage({
 }: {
   params: { tenantSlug: string; id: string };
 }) {
-  const tenant = await loadTenantBySlug(params.tenantSlug);
+  const tenant = await getTenantBySlug(params.tenantSlug);
   if (!tenant) notFound();
 
   // Fetch the actual product from database with category info
-  const product = await prismaRW.product.findFirst({
-    where: {
-      id: params.id,
-      tenantId: tenant.id,
-    },
-    include: {
-      primaryCategory: {
-        select: {
-          name: true,
-          slug: true,
-        },
-      },
-    },
-  });
+  const products = await getTenantDocuments('products', tenant.id);
+  const product = products.find((p: any) => p.id === params.id);
 
   if (!product) {
     notFound();
   }
+
+  // Get categories for primary category info
+  const categories = await getTenantDocuments('categories', tenant.id);
+  const primaryCategory = product.primaryCategoryId ? 
+    categories.find((c: any) => c.id === product.primaryCategoryId) : null;
 
   // Convert Decimal to number for client component
   const productForClient = {
@@ -40,9 +32,9 @@ export default async function ProductPage({
     price: Number(product.price),
     compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
     customFields: product.customFields || [],
-    categories: product.primaryCategory ? {
-      name: product.primaryCategory.name,
-      slug: product.primaryCategory.slug,
+    categories: primaryCategory ? {
+      name: primaryCategory.name,
+      slug: primaryCategory.slug,
     } : null,
   };
 

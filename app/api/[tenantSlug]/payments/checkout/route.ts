@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireTenantAndRole } from '@/lib/rbac';
 import { getPaymentAdapter } from '@/lib/payments/factory';
-import { prisma } from '@/lib/prisma';
+import { createDocument } from '@/lib/firebase/tenant';
 import { logAction } from '@/lib/rbac';
 import { z } from 'zod';
 
@@ -58,20 +58,18 @@ export async function POST(
     });
 
     // Create payment record
-    const payment = await prisma.payment.create({
-      data: {
-        tenantId: tenant.id,
-        orderId: validatedData.orderId,
-        userId: user.id,
-        provider: 'TAP', // TODO: Get from config
-        externalId: checkoutResult.externalId,
-        status: 'PENDING',
-        amountMinor: validatedData.amountMinor,
-        currency: validatedData.currency,
-        rawPayload: {
-          checkoutData: validatedData,
-          externalId: checkoutResult.externalId
-        }
+    const payment = await createDocument('payments', {
+      tenantId: tenant.id,
+      orderId: validatedData.orderId,
+      userId: user.id,
+      provider: 'TAP', // TODO: Get from config
+      externalId: checkoutResult.externalId,
+      status: 'PENDING',
+      amountMinor: validatedData.amountMinor,
+      currency: validatedData.currency,
+      rawPayload: {
+        checkoutData: validatedData,
+        externalId: checkoutResult.externalId
       }
     });
 

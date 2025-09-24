@@ -1,4 +1,5 @@
-import { prismaRW } from "@/lib/db";
+import { getTenantDocuments } from "@/lib/db";
+import { getTenantBySlug } from "@/lib/firebase/tenant";
 import CategoriesClient from "./CategoriesClient";
 import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
@@ -10,15 +11,7 @@ export default async function CategoriesPage({ params }:{ params: Promise<{tenan
   const { tenantSlug } = await params;
   
   try {
-    const tenant = await prismaRW.tenant.findUnique({ 
-      where:{ slug: tenantSlug }, 
-      select:{ 
-        id: true, 
-        name: true,
-        logoUrl: true,
-        settingsJson: true,
-      }
-    });
+    const tenant = await getTenantBySlug(tenantSlug);
     
     if (!tenant) return <div>Tenant not found</div>;
 
@@ -30,17 +23,15 @@ export default async function CategoriesPage({ params }:{ params: Promise<{tenan
       return translations[key] || key;
     };
 
-    const cats = await prismaRW.category.findMany({
-      where:{ tenantId: tenant.id, isActive: true },
-      orderBy:[{ sortOrder:"asc" }, { name:"asc" }],
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        imageUrl: true,
-        _count: { select: { products: true } }
-      }
-    });
+    const cats = await getTenantDocuments('categories', tenant.id);
+    const activeCats = cats
+      .filter((cat: any) => cat.isActive !== false)
+      .sort((a: any, b: any) => {
+        if (a.sortOrder !== b.sortOrder) {
+          return (a.sortOrder || 0) - (b.sortOrder || 0);
+        }
+        return (a.name || '').localeCompare(b.name || '');
+      });
 
     return (
       <div className="min-h-screen bg-neutral-50">
@@ -52,8 +43,8 @@ export default async function CategoriesPage({ params }:{ params: Promise<{tenan
         </Section>
         
         {/* Categories Content */}
-        {cats.length > 0 ? (
-          <CategoriesClient categories={cats} tenantSlug={tenantSlug} tenantLogo={tenant.logoUrl} />
+        {activeCats.length > 0 ? (
+          <CategoriesClient categories={activeCats} tenantSlug={tenantSlug} tenantLogo={tenant.logoUrl} />
         ) : (
           <Section>
             <Container>

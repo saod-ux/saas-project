@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveTenantBySlug } from '@/lib/tenant'
-import { prismaRW, prismaRO } from '@/lib/db'
+import { getTenantBySlug, updateTenant } from '@/lib/firebase/tenant'
 import { revalidatePath } from 'next/cache'
 
 // Target settings shape helpers
@@ -111,12 +110,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Tenant slug required' }, { status: 400 })
     }
 
-    const tenant = await resolveTenantBySlug(tenantSlug)
+    const tenant = await getTenantBySlug(tenantSlug)
     if (!tenant) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
-    const currentSettings = tenant.settingsJson || {}
+    const currentSettings = tenant.settings || {}
     const data = toTargetShape(tenant, currentSettings)
     return NextResponse.json({ data })
   } catch (error) {
@@ -128,7 +127,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PATCH /api/v1/settings - Deep-merge updates into settingsJson (target shape)
+// PATCH /api/v1/settings - Deep-merge updates into settings (target shape)
 export async function PATCH(request: NextRequest) {
   try {
     const tenantSlug = request.headers.get('x-tenant-slug')
@@ -136,7 +135,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Tenant slug required' }, { status: 400 })
     }
 
-    const tenant = await resolveTenantBySlug(tenantSlug)
+    const tenant = await getTenantBySlug(tenantSlug)
     if (!tenant) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
@@ -144,19 +143,18 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const clean = sanitizeIncoming(body)
 
-    const current = tenant.settingsJson || {}
+    const current = tenant.settings || {}
     const merged = deepMerge(current, clean)
 
-    const updated = await prismaRW.tenant.update({
-      where: { id: tenant.id },
-      data: { settingsJson: merged }
+    const updated = await updateTenant(tenant.id, {
+      settings: merged
     })
 
     // Revalidate tenant-specific storefront routes
     // Note: Next.js revalidatePath requires concrete paths; we revalidate home and product list page.
     revalidatePath(`/${tenant.slug}`)
 
-    const data = toTargetShape(updated, updated.settingsJson)
+    const data = toTargetShape(updated, updated.settings)
     return NextResponse.json({ data })
   } catch (error: any) {
     console.error('Error updating settings:', error)

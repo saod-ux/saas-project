@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments, updateDocument } from "@/lib/db";
 import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -23,26 +23,18 @@ export async function PATCH(
     const { order } = ReorderSchema.parse(body);
 
     // Check if product exists and belongs to tenant
-    const product = await prisma.product.findFirst({
-      where: { 
-        id: params.id, 
-        tenantId: tenant.id 
-      }
-    });
+    const products = await getTenantDocuments('products', tenant.id)
+    const product = products.find((p: any) => p.id === params.id)
 
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Update sort order for all images in transaction
-    await prisma.$transaction(
-      order.map((imageId, index) =>
-        prisma.productImage.update({
-          where: { id: imageId },
-          data: { order: index }
-        })
-      )
-    );
+    // Update sort order for all images
+    for (let index = 0; index < order.length; index++) {
+      const imageId = order[index]
+      await updateDocument('productImages', imageId, { sortOrder: index })
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

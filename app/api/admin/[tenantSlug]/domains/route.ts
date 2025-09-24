@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments, createDocument, updateDocument } from '@/lib/firebase/tenant'
 import { requireTenantAndRole } from '@/lib/rbac'
 import { enforceLimit } from '@/lib/limits'
 import * as dns from 'dns/promises'
@@ -27,21 +27,20 @@ export async function GET(
     
     const { tenant } = result
     
-    const domains = await prismaRW.domain.findMany({
-      where: { tenantId: tenant.id },
-      select: {
-        id: true,
-        domain: true,
-        dnsStatus: true,
-        sslStatus: true,
-        verified: true,
-        verifiedAt: true,
-        lastCheckedAt: true,
-        createdAt: true,
-        updatedAt: true
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const allDomains = await getTenantDocuments('domains', tenant.id);
+    const domains = allDomains
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((domain: any) => ({
+        id: domain.id,
+        domain: domain.domain,
+        dnsStatus: domain.dnsStatus,
+        sslStatus: domain.sslStatus,
+        verified: domain.verified,
+        verifiedAt: domain.verifiedAt,
+        lastCheckedAt: domain.lastCheckedAt,
+        createdAt: domain.createdAt,
+        updatedAt: domain.updatedAt
+      }));
 
     return NextResponse.json({
       ok: true,
@@ -83,9 +82,8 @@ export async function POST(
     const domain = validatedData.domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '')
     
     // Check if domain already exists
-    const existingDomain = await prismaRW.domain.findUnique({
-      where: { domain }
-    })
+    const allDomains = await getTenantDocuments('domains', tenant.id);
+    const existingDomain = allDomains.find((d: any) => d.domain === domain);
 
     if (existingDomain) {
       return NextResponse.json(
@@ -95,22 +93,13 @@ export async function POST(
     }
 
     // Create domain record
-    const newDomain = await prismaRW.domain.create({
-      data: {
-        tenantId: tenant.id,
-        domain,
-        dnsStatus: 'PENDING',
-        sslStatus: 'NONE',
-        verified: false
-      },
-      select: {
-        id: true,
-        domain: true,
-        dnsStatus: true,
-        sslStatus: true,
-        verified: true,
-        createdAt: true
-      }
+    const newDomain = await createDocument('domains', {
+      tenantId: tenant.id,
+      domain,
+      dnsStatus: 'PENDING',
+      sslStatus: 'NONE',
+      verified: false,
+      createdAt: new Date()
     })
 
     return NextResponse.json({
@@ -152,12 +141,8 @@ export async function PUT(
     const domain = validatedData.domain.toLowerCase()
     
     // Find domain record
-    const domainRecord = await prismaRW.domain.findFirst({
-      where: {
-        domain,
-        tenantId: tenant.id
-      }
-    })
+    const allDomains = await getTenantDocuments('domains', tenant.id);
+    const domainRecord = allDomains.find((d: any) => d.domain === domain);
 
     if (!domainRecord) {
       return NextResponse.json(
@@ -184,23 +169,11 @@ export async function PUT(
     }
 
     // Update domain status
-    const updatedDomain = await prismaRW.domain.update({
-      where: { id: domainRecord.id },
-      data: {
-        dnsStatus: dnsVerified ? 'VERIFIED' : 'INVALID',
-        verified: dnsVerified,
-        verifiedAt: dnsVerified ? new Date() : null,
-        lastCheckedAt: new Date()
-      },
-      select: {
-        id: true,
-        domain: true,
-        dnsStatus: true,
-        sslStatus: true,
-        verified: true,
-        verifiedAt: true,
-        lastCheckedAt: true
-      }
+    const updatedDomain = await updateDocument('domains', domainRecord.id, {
+      dnsStatus: dnsVerified ? 'VERIFIED' : 'INVALID',
+      verified: dnsVerified,
+      verifiedAt: dnsVerified ? new Date() : null,
+      lastCheckedAt: new Date()
     })
 
     return NextResponse.json({

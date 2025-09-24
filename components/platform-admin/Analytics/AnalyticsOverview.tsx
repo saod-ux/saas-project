@@ -1,15 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
 
 export default async function AnalyticsOverview() {
-  const [
-    totalMerchants,
-    activeMerchants,
-    totalUsers
-  ] = await Promise.all([
-    prisma.tenant.count(),
-    prisma.tenant.count({ where: { status: "ACTIVE" } }),
-    prisma.user.count()
-  ]);
+  // Fetch all data from Firestore
+  const allTenants = await getTenantDocuments('tenants', '');
+  const allUsers = await getTenantDocuments('users', '');
+  
+  const totalMerchants = allTenants.length;
+  const activeMerchants = allTenants.filter((t: any) => t.status === "ACTIVE").length;
+  const totalUsers = allUsers.length;
 
   // Mock analytics data - replace with actual analytics
   const metrics = [

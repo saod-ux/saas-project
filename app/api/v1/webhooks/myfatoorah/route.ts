@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments, updateDocument } from '@/lib/firebase/tenant'
 import { z } from 'zod'
 
 const webhookSchema = z.object({
@@ -28,10 +28,8 @@ export async function POST(request: NextRequest) {
     console.log('MyFatoorah webhook received:', validatedData)
 
     // Find the order
-    const order = await prismaRW.order.findUnique({
-      where: { id: validatedData.orderId },
-      include: { payments: true }
-    })
+    const allOrders = await getTenantDocuments('orders', '');
+    const order = allOrders.find((o: any) => o.id === validatedData.orderId);
 
     if (!order) {
       console.error('Order not found for webhook:', validatedData.orderId)
@@ -41,30 +39,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Find payments for this order
+    const allPayments = await getTenantDocuments('payments', '');
+    const payments = allPayments.filter((p: any) => p.orderId === order.id);
+    
     // Update payment status
-    const payment = order.payments[0]
+    const payment = payments[0];
     if (payment) {
-      await prismaRW.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: validatedData.status === 'success' ? 'SUCCEEDED' : 'FAILED',
-          rawPayload: {
-              ...(payment.rawPayload as any || {}),
-              webhookData: validatedData,
-              processedAt: new Date().toISOString(),
-            }
-        }
-      })
+      await updateDocument('payments', payment.id, {
+        status: validatedData.status === 'success' ? 'SUCCEEDED' : 'FAILED',
+        rawPayload: {
+            ...(payment.rawPayload as any || {}),
+            webhookData: validatedData,
+            processedAt: new Date().toISOString(),
+          }
+      });
     }
 
     // Update order status based on payment
     if (validatedData.status === 'success') {
-      await prismaRW.order.update({
-        where: { id: order.id },
-        data: {
-          status: 'CONFIRMED'
-        }
-      })
+      await updateDocument('orders', order.id, {
+        status: 'CONFIRMED'
+      });
 
       // Here you could:
       // - Send confirmation email to customer
@@ -74,12 +70,9 @@ export async function POST(request: NextRequest) {
 
       console.log('Order marked as paid:', order.id)
     } else if (validatedData.status === 'failed') {
-      await prismaRW.order.update({
-        where: { id: order.id },
-        data: {
-          status: 'CANCELLED'
-        }
-      })
+      await updateDocument('orders', order.id, {
+        status: 'CANCELLED'
+      });
 
       console.log('Order marked as payment failed:', order.id)
     }

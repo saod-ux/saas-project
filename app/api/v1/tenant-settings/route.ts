@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getTenantBySlug } from "@/lib/firebase/tenant";
 import { upgradeSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -13,21 +13,14 @@ export async function GET(req: Request) {
   }
 
   try {
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug: tenantSlug },
-      select: { 
-        id: true,
-        name: true,
-        settingsJson: true,
-      },
-    });
+    const tenant = await getTenantBySlug(tenantSlug);
 
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
     // Upgrade settings to latest version
-    const upgradedSettings = upgradeSettings(tenant.settingsJson || {});
+    const upgradedSettings = upgradeSettings(tenant.settings || {});
 
     return NextResponse.json({
       found: true,

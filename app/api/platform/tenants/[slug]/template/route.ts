@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments, updateDocument } from '@/lib/db'
 
 const updateTemplateSchema = z.object({
   template: z.enum(['RESTAURANT', 'RETAIL'])
@@ -28,10 +28,8 @@ export async function PATCH(
     const validatedData = updateTemplateSchema.parse(body)
     
     // Check if tenant exists
-    const existingTenant = await prismaRW.tenant.findUnique({
-      where: { slug },
-      select: { id: true, name: true, template: true }
-    })
+    const tenants = await getTenantDocuments('tenants', '')
+    const existingTenant = tenants.find((t: any) => t.slug === slug)
 
     if (!existingTenant) {
       return NextResponse.json(
@@ -41,17 +39,8 @@ export async function PATCH(
     }
 
     // Update tenant template
-    const updatedTenant = await prismaRW.tenant.update({
-      where: { slug },
-      data: { template: validatedData.template },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        template: true,
-        status: true,
-        updatedAt: true
-      }
+    const updatedTenant = await updateDocument('tenants', existingTenant.id, { 
+      template: validatedData.template 
     })
 
     return NextResponse.json({
@@ -84,18 +73,8 @@ export async function GET(
   try {
     const { slug } = params
 
-    const tenant = await prismaRW.tenant.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        template: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    })
+    const tenants = await getTenantDocuments('tenants', '')
+    const tenant = tenants.find((t: any) => t.slug === slug)
 
     if (!tenant) {
       return NextResponse.json(
@@ -117,6 +96,7 @@ export async function GET(
     )
   }
 }
+
 
 
 

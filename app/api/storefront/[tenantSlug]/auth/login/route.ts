@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prismaRW } from '@/lib/db';
-import { loadTenantBySlug } from '@/lib/loadTenant';
-import { findTenantUserByEmail } from '@/lib/tenant-user';
+import { getTenantBySlug, getTenantDocuments } from '@/lib/firebase/tenant';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -19,7 +17,7 @@ export async function POST(
     const { tenantSlug } = params;
     
     // Load tenant
-    const tenant = await loadTenantBySlug(tenantSlug);
+    const tenant = await getTenantBySlug(tenantSlug);
     if (!tenant) {
       return NextResponse.json(
         { ok: false, error: 'Store not found' },
@@ -32,7 +30,11 @@ export async function POST(
     const { email, password } = validatedData;
 
     // Find customer by email within this tenant
-    const customer = await findTenantUserByEmail(tenant.id, email);
+    const allUsers = await getTenantDocuments('users', '');
+    const customer = allUsers.find((user: any) => 
+      user.email === email && user.tenantId === tenant.id
+    );
+    
     if (!customer) {
       return NextResponse.json(
         { ok: false, error: 'Invalid email or password' },

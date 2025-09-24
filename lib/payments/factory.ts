@@ -7,7 +7,7 @@
 import { PaymentAdapter, PaymentConfig } from './adapter';
 import { TapAdapter } from './providers/tap';
 import { MyFatoorahAdapter } from './providers/myfatoorah';
-import { prisma } from '@/lib/prisma';
+import { getTenantDocuments } from '@/lib/db';
 
 export async function getPaymentAdapter(tenantId: string): Promise<PaymentAdapter | null> {
   try {

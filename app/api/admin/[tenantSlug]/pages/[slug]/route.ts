@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments, createDocument, updateDocument, deleteDocument } from "@/lib/firebase/tenant";
 import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -21,12 +21,8 @@ export async function GET(
     
     const { tenant } = result;
     
-    const page = await prisma.page.findFirst({
-      where: { 
-        slug: params.slug,
-        tenantId: tenant.id,
-      },
-    });
+    const allPages = await getTenantDocuments('pages', tenant.id);
+    const page = allPages.find((p: any) => p.slug === params.slug);
 
     if (!page) {
       return NextResponse.json(
@@ -58,20 +54,22 @@ export async function PUT(
     const body = await request.json();
     const validatedData = UpdatePageSchema.parse(body);
 
-    const page = await prisma.page.upsert({
-      where: { 
-        tenantId_slug: { 
-          tenantId: tenant.id, 
-          slug: params.slug 
-        }
-      },
-      update: validatedData,
-      create: { 
+    // Check if page exists
+    const allPages = await getTenantDocuments('pages', tenant.id);
+    const existingPage = allPages.find((p: any) => p.slug === params.slug);
+
+    let page;
+    if (existingPage) {
+      // Update existing page
+      page = await updateDocument('pages', existingPage.id, validatedData);
+    } else {
+      // Create new page
+      page = await createDocument('pages', { 
         ...validatedData, 
         slug: params.slug, 
         tenantId: tenant.id 
-      },
-    });
+      });
+    }
 
     return NextResponse.json({ ok: true, data: page });
   } catch (error) {
@@ -100,12 +98,8 @@ export async function DELETE(
     const { tenant } = result;
     
     // Check if page exists and belongs to tenant
-    const existingPage = await prisma.page.findFirst({
-      where: { 
-        slug: params.slug,
-        tenantId: tenant.id,
-      },
-    });
+    const allPages = await getTenantDocuments('pages', tenant.id);
+    const existingPage = allPages.find((p: any) => p.slug === params.slug);
 
     if (!existingPage) {
       return NextResponse.json(
@@ -115,9 +109,7 @@ export async function DELETE(
     }
 
     // Delete page
-    await prisma.page.delete({
-      where: { id: existingPage.id },
-    });
+    await deleteDocument('pages', existingPage.id);
 
     return NextResponse.json({ ok: true, message: "Page deleted successfully" });
   } catch (error) {

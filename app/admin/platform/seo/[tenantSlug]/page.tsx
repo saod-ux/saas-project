@@ -1,4 +1,4 @@
-import { prismaRW } from "@/lib/db";
+import { getTenantBySlug } from "@/lib/firebase/tenant";
 import { notFound } from "next/navigation";
 import SEOForm from "@/components/platform-admin/SEO/SEOForm";
 import { PageHelp } from "@/components/admin/PageHelp";
@@ -8,21 +8,13 @@ interface PageProps {
 }
 
 export default async function MerchantSEOPage({ params }: PageProps) {
-  const tenant = await prismaRW.tenant.findUnique({
-    where: { slug: params.tenantSlug },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      settingsJson: true,
-    }
-  });
+  const tenant = await getTenantBySlug(params.tenantSlug);
 
   if (!tenant) {
     notFound();
   }
 
-  const settings = tenant.settingsJson as any;
+  const settings = tenant.settings as any;
   const seo = settings?.seo || {};
 
   return (

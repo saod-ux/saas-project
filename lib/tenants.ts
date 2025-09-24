@@ -1,4 +1,4 @@
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments, createDocument, updateDocument } from '@/lib/db'
 
 export interface TenantInfo {
   id: string
@@ -21,17 +21,8 @@ export async function getTenantBySlug(slug: string): Promise<TenantInfo | null> 
 
   for (let i = 1; i <= attempts; i++) {
     try {
-      const tenant = await prismaRW.tenant.findUnique({
-        where: { slug: normalized },
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          template: true,
-          status: true,
-          settingsJson: true,
-        }
-      })
+      const tenants = await getTenantDocuments('tenants', '')
+      const tenant = tenants.find((t: any) => t.slug === normalized)
 
       if (tenant) {
         return {
@@ -40,7 +31,7 @@ export async function getTenantBySlug(slug: string): Promise<TenantInfo | null> 
           name: tenant.name,
           template: tenant.template,
           status: tenant.status,
-          settingsJson: tenant.settingsJson,
+          settingsJson: tenant.settings,
         }
       }
 
@@ -69,17 +60,8 @@ export async function getTenantBySlug(slug: string): Promise<TenantInfo | null> 
  */
 export async function getTenantById(id: string): Promise<TenantInfo | null> {
   try {
-    const tenant = await prismaRW.tenant.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        template: true,
-        status: true,
-        settingsJson: true,
-      }
-    })
+    const tenants = await getTenantDocuments('tenants', '')
+    const tenant = tenants.find((t: any) => t.id === id)
 
     if (!tenant) {
       return null
@@ -91,7 +73,7 @@ export async function getTenantById(id: string): Promise<TenantInfo | null> {
       name: tenant.name,
       template: tenant.template,
       status: tenant.status,
-      settingsJson: tenant.settingsJson,
+      settingsJson: tenant.settings,
     }
   } catch (error) {
     console.error('Error fetching tenant by ID:', error)
@@ -110,18 +92,7 @@ export async function updateTenantTemplate(
   template: 'RESTAURANT' | 'RETAIL'
 ): Promise<TenantInfo | null> {
   try {
-    const updatedTenant = await prismaRW.tenant.update({
-      where: { id: tenantId },
-      data: { template },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        template: true,
-        status: true,
-        settingsJson: true,
-      }
-    })
+    const updatedTenant = await updateDocument('tenants', tenantId, { template })
 
     return {
       id: updatedTenant.id,
@@ -129,7 +100,7 @@ export async function updateTenantTemplate(
       name: updatedTenant.name,
       template: updatedTenant.template as 'RESTAURANT' | 'RETAIL',
       status: updatedTenant.status,
-      settingsJson: updatedTenant.settingsJson,
+      settingsJson: updatedTenant.settings,
     }
   } catch (error) {
     console.error('Error updating tenant template:', error)
@@ -148,57 +119,51 @@ export async function createTenant(data: {
   template: 'RESTAURANT' | 'RETAIL'
 }): Promise<TenantInfo | null> {
   try {
-    const tenant = await prismaRW.tenant.create({
-      data: {
-        name: data.name,
-        slug: data.slug,
-        template: data.template,
-        status: 'ACTIVE',
-        settingsJson: {
-          template: data.template.toLowerCase(),
-          branding: {
-            storeName: data.name,
-            logoUrl: null,
-            faviconUrl: null,
-            primaryColor: data.template === 'RESTAURANT' ? '#dc2626' : '#2563eb',
-            accentColor: data.template === 'RESTAURANT' ? '#f59e0b' : '#7c3aed'
-          },
-          hero: {
-            title: `Welcome to ${data.name}`,
-            subtitle: data.template === 'RESTAURANT' ? 'Delicious food delivered to your door' : 'Discover amazing products',
-            ctaLabel: data.template === 'RESTAURANT' ? 'Order Now' : 'Shop Now',
-            imageUrl: null
-          },
-          ui: {
-            locale: 'en',
-            currency: 'KWD',
-            showCategories: true,
-            showPriceFilter: data.template === 'RETAIL',
-            showSort: data.template === 'RETAIL',
-            placeholderStyle: data.template === 'RESTAURANT' ? 'box' : 'grid'
-          },
-          links: {
-            header: data.template === 'RESTAURANT' ? ['Menu', 'About', 'Contact'] : ['Products', 'Categories', 'About'],
-            footer: {
-              left: ['Privacy Policy', 'Terms of Service'],
-              social: ['Instagram', 'Facebook', 'Twitter']
-            }
-          },
-          policies: {
-            returns: data.template === 'RESTAURANT' ? 'No returns on food items' : '30-day return policy',
-            shipping: data.template === 'RESTAURANT' ? 'Free delivery on orders over 10 KWD' : 'Free shipping on orders over 25 KWD'
+    const tenantData = {
+      name: data.name,
+      slug: data.slug,
+      template: data.template,
+      status: 'ACTIVE',
+      settings: {
+        template: data.template.toLowerCase(),
+        branding: {
+          storeName: data.name,
+          logoUrl: null,
+          faviconUrl: null,
+          primaryColor: data.template === 'RESTAURANT' ? '#dc2626' : '#2563eb',
+          accentColor: data.template === 'RESTAURANT' ? '#f59e0b' : '#7c3aed'
+        },
+        hero: {
+          title: `Welcome to ${data.name}`,
+          subtitle: data.template === 'RESTAURANT' ? 'Delicious food delivered to your door' : 'Discover amazing products',
+          ctaLabel: data.template === 'RESTAURANT' ? 'Order Now' : 'Shop Now',
+          imageUrl: null
+        },
+        ui: {
+          locale: 'en',
+          currency: 'KWD',
+          showCategories: true,
+          showPriceFilter: data.template === 'RETAIL',
+          showSort: data.template === 'RETAIL',
+          placeholderStyle: data.template === 'RESTAURANT' ? 'box' : 'grid'
+        },
+        links: {
+          header: data.template === 'RESTAURANT' ? ['Menu', 'About', 'Contact'] : ['Products', 'Categories', 'About'],
+          footer: {
+            left: ['Privacy Policy', 'Terms of Service'],
+            social: ['Instagram', 'Facebook', 'Twitter']
           }
+        },
+        policies: {
+          returns: data.template === 'RESTAURANT' ? 'No returns on food items' : '30-day return policy',
+          shipping: data.template === 'RESTAURANT' ? 'Free delivery on orders over 10 KWD' : 'Free shipping on orders over 25 KWD'
         }
       },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        template: true,
-        status: true,
-        settingsJson: true,
-      }
-    })
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    const tenant = await createDocument('tenants', tenantData)
 
     return {
       id: tenant.id,
@@ -206,7 +171,7 @@ export async function createTenant(data: {
       name: tenant.name,
       template: tenant.template,
       status: tenant.status,
-      settingsJson: tenant.settingsJson,
+      settingsJson: tenant.settings,
     }
   } catch (error) {
     console.error('Error creating tenant:', error)
@@ -222,13 +187,10 @@ export async function createTenant(data: {
  */
 export async function isSlugAvailable(slug: string, excludeId?: string): Promise<boolean> {
   try {
-    const existing = await prismaRW.tenant.findFirst({
-      where: {
-        slug,
-        ...(excludeId && { id: { not: excludeId } })
-      },
-      select: { id: true }
-    })
+    const tenants = await getTenantDocuments('tenants', '')
+    const existing = tenants.find((t: any) => 
+      t.slug === slug && (!excludeId || t.id !== excludeId)
+    )
 
     return !existing
   } catch (error) {

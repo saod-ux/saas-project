@@ -94,7 +94,6 @@ export default async function TenantLayout({ params, children }:{
     if (merchantContentDoc.exists) {
       const merchantData = merchantContentDoc.data();
       platformContent = {
-        hero: merchantData?.hero,
         policies: merchantData?.policies
       };
     }
@@ -105,7 +104,6 @@ export default async function TenantLayout({ params, children }:{
       if (platformContentDoc.exists) {
         const platformData = platformContentDoc.data();
         platformContent = {
-          hero: platformData?.hero,
           policies: platformData?.policies
         };
       }
@@ -160,7 +158,7 @@ export default async function TenantLayout({ params, children }:{
           <main>{children}</main>
           {/* Mobile Bottom Navigation */}
           <MobileBottomNav tenantSlug={tenantSlug} />
-          <Footer tenantSlug={tenantSlug} tenant={null} platformContent={platformContent} />
+          <Footer tenantSlug={tenantSlug} tenant={tenant} platformContent={platformContent || undefined} />
         </div>
       </CustomerProvider>
     </TenantRTLProvider>

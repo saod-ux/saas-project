@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments, createDocument, deleteDocument, getTenantBySlug } from "@/lib/firebase/tenant";
 import { requireTenantAndRole } from "@/lib/rbac";
 import { revalidatePath } from "next/cache";
 
@@ -17,33 +17,29 @@ export async function PUT(
       return NextResponse.json({ ok: false, error: "Invalid slides data" }, { status: 400 });
     }
 
-    const tenant = await prisma.tenant.findUnique({ 
-      where: { slug: params.tenantSlug }, 
-      select: { id: true }
-    });
+    const tenant = await getTenantBySlug(params.tenantSlug);
     
     if (!tenant) {
       return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
     }
 
     // Delete all existing slides and recreate in order
-    await prisma.$transaction(async (tx) => {
-      await tx.heroSlide.deleteMany({ where: { tenantId: tenant.id } });
-      
-      for (let i = 0; i < slides.length; i++) {
-        const slide = slides[i];
-        await tx.heroSlide.create({
-          data: {
-            tenantId: tenant.id,
-            url: slide.url,
-            type: slide.type ?? "image",
-            poster: slide.poster ?? null,
-            sortOrder: i,
-            isActive: slide.isActive ?? true,
-          },
-        });
-      }
-    });
+    const existingSlides = await getTenantDocuments('heroSlides', tenant.id);
+    for (const slide of existingSlides) {
+      await deleteDocument('heroSlides', slide.id);
+    }
+    
+    for (let i = 0; i < slides.length; i++) {
+      const slide = slides[i];
+      await createDocument('heroSlides', {
+        tenantId: tenant.id,
+        url: slide.url,
+        type: slide.type ?? "image",
+        poster: slide.poster ?? null,
+        sortOrder: i,
+        isActive: slide.isActive ?? true,
+      });
+    }
 
     // Invalidate the Home page for this tenant
     revalidatePath(`/${params.tenantSlug}`);
@@ -65,30 +61,26 @@ export async function GET(
   try {
     const user = await requireTenantAndRole(request, params.tenantSlug, ["OWNER", "ADMIN", "STAFF"]);
     
-    const tenant = await prisma.tenant.findUnique({ 
-      where: { slug: params.tenantSlug },
-      select: { id: true }
-    });
+    const tenant = await getTenantBySlug(params.tenantSlug);
     
     if (!tenant) {
       return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
     }
 
-    const slides = await prisma.heroSlide.findMany({
-      where: { tenantId: tenant.id },
-      orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        url: true,
-        type: true,
-        poster: true,
-        sortOrder: true,
-        isActive: true,
-        updatedAt: true,
-      },
-    });
+    const slides = await getTenantDocuments('heroSlides', tenant.id);
+    const sortedSlides = slides
+      .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+      .map((slide: any) => ({
+        id: slide.id,
+        url: slide.url,
+        type: slide.type,
+        poster: slide.poster,
+        sortOrder: slide.sortOrder,
+        isActive: slide.isActive,
+        updatedAt: slide.updatedAt,
+      }));
     
-    return NextResponse.json({ ok: true, slides });
+    return NextResponse.json({ ok: true, slides: sortedSlides });
   } catch (error) {
     console.error("Error fetching hero slides:", error);
     return NextResponse.json(

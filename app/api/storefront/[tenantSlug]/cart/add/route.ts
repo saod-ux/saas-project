@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { getTenantBySlug, getTenantDocuments } from '@/lib/firebase/tenant'
 import { addToCart, CartAddSchema } from '@/lib/cart'
-import { resolveTenantBySlug } from '@/lib/tenant'
-import { findOrCreateTenantUser } from '@/lib/tenant-user'
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,7 +14,7 @@ export async function POST(
     const { tenantSlug } = params
 
     // Get tenant
-    const tenant = await resolveTenantBySlug(tenantSlug)
+    const tenant = await getTenantBySlug(tenantSlug)
     if (!tenant) {
       return NextResponse.json({ ok: false, error: 'TENANT_NOT_FOUND' }, { status: 404 })
     }
@@ -26,18 +24,10 @@ export async function POST(
     const { productId, qty } = CartAddSchema.parse(body)
 
     // Fetch product
-    const product = await prisma.product.findFirst({
-      where: {
-        id: productId,
-        tenantId: tenant.id,
-        status: 'active'
-      },
-      select: {
-        id: true,
-        title: true,
-        price: true
-      }
-    })
+    const allProducts = await getTenantDocuments('products', tenant.id)
+    const product = allProducts.find((p: any) => 
+      p.id === productId && p.status === 'active'
+    )
 
     if (!product) {
       return NextResponse.json({ ok: false, error: 'PRODUCT_NOT_FOUND' }, { status: 404 })

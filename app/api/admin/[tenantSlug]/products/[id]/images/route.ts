@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments, createDocument } from "@/lib/firebase/tenant";
 import { requireTenantAndRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -27,46 +27,37 @@ export async function POST(
     const { images } = AddImagesSchema.parse(body);
 
     // Check if product exists and belongs to tenant
-    const product = await prisma.product.findFirst({
-      where: { 
-        id: params.id, 
-        tenantId: tenant.id 
-      },
-      include: { productImages: true }
-    });
+    const allProducts = await getTenantDocuments('products', tenant.id);
+    const product = allProducts.find((p: any) => p.id === params.id);
 
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const hasPrimary = product.productImages.some((img: any) => img.isPrimary);
+    // Get existing product images
+    const allProductImages = await getTenantDocuments('productImages', tenant.id);
+    const productImages = allProductImages.filter((img: any) => img.productId === params.id);
 
-    // Create images in transaction
-    const createdImages = await prisma.$transaction(async (tx) => {
-      // Get the highest sort order
-      const maxOrder = await tx.productImage.aggregate({
-        where: { productId: product.id },
-        _max: { order: true }
-      });
+    const hasPrimary = productImages.some((img: any) => img.isPrimary);
 
-      const baseOrder = maxOrder._max.order ?? -1;
+    // Get the highest sort order
+    const maxOrder = productImages.reduce((max: number, img: any) => 
+      Math.max(max, img.order || 0), -1
+    );
 
-      // Create all images
-      const createdImgs = await Promise.all(
-        images.map((img, idx) => 
-          tx.productImage.create({
-            data: {
-              productId: product.id,
-              url: img.url,
-              order: baseOrder + idx + 1,
-              isPrimary: !hasPrimary && idx === 0, // Auto-primary if none exists
-            }
-          })
-        )
-      );
+    const baseOrder = maxOrder;
 
-      return createdImgs;
-    });
+    // Create all images
+    const createdImages = await Promise.all(
+      images.map((img, idx) => 
+        createDocument('productImages', {
+          productId: product.id,
+          url: img.url,
+          order: baseOrder + idx + 1,
+          isPrimary: !hasPrimary && idx === 0, // Auto-primary if none exists
+        })
+      )
+    );
 
     return NextResponse.json({ images: createdImages });
   } catch (error) {

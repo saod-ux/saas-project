@@ -1,4 +1,4 @@
-import { prismaRW } from '@/lib/db'
+// This file uses API calls instead of direct database access
 
 export interface Tenant {
   id: string

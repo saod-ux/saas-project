@@ -1,4 +1,4 @@
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments } from '@/lib/db'
 
 export interface PlanLimits {
   maxProducts: number
@@ -21,21 +21,14 @@ export interface CurrentUsage {
 
 export async function getTenantLimits(tenantId: string): Promise<PlanLimits | null> {
   try {
-    const subscription = await prismaRW.subscription.findFirst({
-      where: {
-        tenantId,
-        status: 'active'
-      },
-      include: {
-        plan: {
-          select: {
-            features: true
-          }
-        }
-      }
-    })
+    const subscriptions = await getTenantDocuments('subscriptions', '')
+    const plans = await getTenantDocuments('plans', '')
+    
+    const subscription = subscriptions.find((s: any) => 
+      s.tenantId === tenantId && s.status === 'active'
+    )
 
-    if (!subscription?.plan) {
+    if (!subscription) {
       // Return default free plan limits
       return {
         maxProducts: 10,
@@ -50,7 +43,22 @@ export async function getTenantLimits(tenantId: string): Promise<PlanLimits | nu
       }
     }
 
-    return subscription.plan.features as unknown as PlanLimits
+    const plan = plans.find((p: any) => p.id === subscription.planId)
+    if (!plan) {
+      return {
+        maxProducts: 10,
+        maxCategories: 5,
+        maxDomains: 0,
+        maxStorage: 100,
+        customDomain: false,
+        analytics: false,
+        prioritySupport: false,
+        apiAccess: false,
+        whiteLabel: false
+      }
+    }
+
+    return plan.features as unknown as PlanLimits
   } catch (error) {
     console.error('Error fetching tenant limits:', error)
     return null
@@ -59,13 +67,17 @@ export async function getTenantLimits(tenantId: string): Promise<PlanLimits | nu
 
 export async function getTenantUsage(tenantId: string): Promise<CurrentUsage> {
   try {
-    const [products, categories, domains, storage] = await Promise.all([
-      prismaRW.product.count({ where: { tenantId } }),
-      prismaRW.category.count({ where: { tenantId } }),
-      prismaRW.domain.count({ where: { tenantId } }),
-      // Calculate storage usage (simplified - in real app, you'd sum actual file sizes)
-      (await prismaRW.product.count({ where: { tenantId } })) * 0.5 // Assume 0.5MB per product
+    const [allProducts, allCategories, allDomains] = await Promise.all([
+      getTenantDocuments('products', ''),
+      getTenantDocuments('categories', ''),
+      getTenantDocuments('domains', '')
     ])
+
+    const products = allProducts.filter((p: any) => p.tenantId === tenantId).length
+    const categories = allCategories.filter((c: any) => c.tenantId === tenantId).length
+    const domains = allDomains.filter((d: any) => d.tenantId === tenantId).length
+    // Calculate storage usage (simplified - in real app, you'd sum actual file sizes)
+    const storage = products * 0.5 // Assume 0.5MB per product
 
     return {
       products,

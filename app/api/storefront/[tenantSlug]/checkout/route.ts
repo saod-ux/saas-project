@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
 import { getCart, clearCart, CheckoutSchema } from '@/lib/cart'
-import { resolveTenantBySlug } from '@/lib/tenant'
+import { getTenantBySlug } from '@/lib/firebase/tenant'
 import { findOrCreateTenantUser } from '@/lib/tenant-user'
 import { getCustomerWithSession } from '@/lib/customer-auth'
-import { Decimal } from '@prisma/client/runtime/library'
+import { getTenantDocuments, createDocument } from '@/lib/db'
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -18,7 +17,7 @@ export async function POST(
     const { tenantSlug } = params
 
     // Get tenant
-    const tenant = await resolveTenantBySlug(tenantSlug)
+    const tenant = await getTenantBySlug(tenantSlug)
     if (!tenant) {
       return NextResponse.json({ ok: false, error: 'TENANT_NOT_FOUND' }, { status: 404 })
     }
@@ -41,18 +40,11 @@ export async function POST(
     let subtotal = 0
 
     for (const cartItem of cart.items) {
-      const product = await prisma.product.findFirst({
-        where: {
-          id: cartItem.productId,
-          tenantId: tenant.id,
-          status: 'active'
-        },
-        select: {
-          id: true,
-          title: true,
-          price: true
-        }
-      })
+      // Get products from Firestore
+      const products = await getTenantDocuments('products', tenant.id)
+      const product = products.find((p: any) => 
+        p.id === cartItem.productId && p.status === 'active'
+      )
 
       if (!product) {
         return NextResponse.json({ 
@@ -99,39 +91,31 @@ export async function POST(
     // Create order
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
     
-    const order = await prisma.order.create({
-      data: {
-        tenantId: tenant.id,
-        tenantUserId: tenantUser.id,
-        orderNumber,
-        status: 'PENDING',
-        customerName: name,
-        customerEmail: email,
-        customerPhone: phone,
-        subtotal: new Decimal(subtotal),
-        tax: new Decimal(0), // No tax for MVP
-        shipping: new Decimal(0), // No shipping for MVP
-        total: new Decimal(subtotal),
-        currency: 'KWD',
-        orderItems: {
-          create: validatedItems.map(item => ({
-            productId: item.productId,
-            nameSnapshot: item.nameSnapshot,
-            priceSnapshot: new Decimal(item.priceSnapshot),
-            quantity: item.quantity,
-            total: new Decimal(item.total)
-          }))
-        }
-      },
-      select: {
-        id: true,
-        orderNumber: true,
-        status: true,
-        total: true,
-        currency: true,
-        createdAt: true
-      }
-    })
+    const orderData = {
+      tenantId: tenant.id,
+      tenantUserId: tenantUser.id,
+      orderNumber,
+      status: 'PENDING',
+      customerName: name,
+      customerEmail: email,
+      customerPhone: phone,
+      subtotal: subtotal,
+      tax: 0, // No tax for MVP
+      shipping: 0, // No shipping for MVP
+      total: subtotal,
+      currency: 'KWD',
+      orderItems: validatedItems.map(item => ({
+        productId: item.productId,
+        nameSnapshot: item.nameSnapshot,
+        priceSnapshot: item.priceSnapshot,
+        quantity: item.quantity,
+        total: item.total
+      })),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    const order = await createDocument('orders', orderData)
 
     // Clear cart
     await clearCart()
@@ -142,7 +126,7 @@ export async function POST(
         orderId: order.id,
         orderNumber: order.orderNumber,
         status: order.status,
-        total: Number(order.total),
+        total: order.total,
         currency: order.currency
       }
     })

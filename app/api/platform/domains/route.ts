@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prismaRW } from "@/lib/db";
+import { getTenantDocuments, createDocument, getTenantBySlug } from "@/lib/firebase/tenant";
 import { z } from "zod";
 
 const createDomainSchema = z.object({
@@ -10,26 +10,29 @@ const createDomainSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     // Get all domains with their tenant information
-    const domains = await prismaRW.domain.findMany({
-      select: {
-        id: true,
-        domain: true,
-        dnsStatus: true,
-        sslStatus: true,
-        verified: true,
-        verifiedAt: true,
-        lastCheckedAt: true,
-        createdAt: true,
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    });
+    const allDomains = await getTenantDocuments('domains', '');
+    const allTenants = await getTenantDocuments('tenants', '');
+    
+    const domains = allDomains
+      .map((domain: any) => {
+        const tenant = allTenants.find((t: any) => t.id === domain.tenantId);
+        return {
+          id: domain.id,
+          domain: domain.domain,
+          dnsStatus: domain.dnsStatus,
+          sslStatus: domain.sslStatus,
+          verified: domain.verified,
+          verifiedAt: domain.verifiedAt,
+          lastCheckedAt: domain.lastCheckedAt,
+          createdAt: domain.createdAt,
+          tenant: tenant ? {
+            id: tenant.id,
+            name: tenant.name,
+            slug: tenant.slug
+          } : null
+        };
+      })
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return NextResponse.json({
       ok: true,
@@ -51,10 +54,7 @@ export async function POST(request: NextRequest) {
     const validatedData = createDomainSchema.parse(body);
     
     // Find the tenant
-    const tenant = await prismaRW.tenant.findUnique({
-      where: { slug: validatedData.tenantSlug },
-      select: { id: true, name: true, slug: true }
-    });
+    const tenant = await getTenantBySlug(validatedData.tenantSlug);
 
     if (!tenant) {
       return NextResponse.json(
@@ -67,9 +67,8 @@ export async function POST(request: NextRequest) {
     const domain = validatedData.domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
     
     // Check if domain already exists
-    const existingDomain = await prismaRW.domain.findUnique({
-      where: { domain }
-    });
+    const allDomains = await getTenantDocuments('domains', '');
+    const existingDomain = allDomains.find((d: any) => d.domain === domain);
 
     if (existingDomain) {
       return NextResponse.json(
@@ -79,34 +78,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Create domain record
-    const newDomain = await prismaRW.domain.create({
-      data: {
-        tenantId: tenant.id,
-        domain,
-        dnsStatus: 'PENDING',
-        sslStatus: 'NONE',
-        verified: false
-      },
-      select: {
-        id: true,
-        domain: true,
-        dnsStatus: true,
-        sslStatus: true,
-        verified: true,
-        createdAt: true,
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        }
-      }
+    const newDomain = await createDocument('domains', {
+      tenantId: tenant.id,
+      domain,
+      dnsStatus: 'PENDING',
+      sslStatus: 'NONE',
+      verified: false,
+      createdAt: new Date()
     });
 
     return NextResponse.json({
       ok: true,
-      data: newDomain,
+      data: {
+        ...newDomain,
+        tenant: {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug
+        }
+      },
       message: 'Domain added successfully'
     }, { status: 201 });
 

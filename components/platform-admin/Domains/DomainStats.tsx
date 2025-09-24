@@ -1,17 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantDocuments } from "@/lib/db";
 
 export default async function DomainStats() {
-  // Since domains are stored as a field on Tenant model, count tenants with domains
-  const [
-    totalDomains,
-    verifiedDomains,
-    sslIssues
-  ] = await Promise.all([
-    prisma.tenant.count({ where: { domain: { not: null } } }),
-    prisma.tenant.count({ where: { domain: { not: null } } }), // All domains are considered "verified" for now
-    // Mock SSL issues count - in real app, you'd check SSL status
-    3
-  ]);
+  // Get all tenants and domains
+  const tenants = await getTenantDocuments('tenants', '')
+  const domains = await getTenantDocuments('domains', '')
+  
+  const totalDomains = domains.length
+  const verifiedDomains = domains.filter((d: any) => d.verified).length
+  const sslIssues = 3 // Mock SSL issues count - in real app, you'd check SSL status
 
   const pendingDomains = 0; // No pending domains since we don't have verification logic yet
 

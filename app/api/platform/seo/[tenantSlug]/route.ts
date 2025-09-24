@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prismaRW } from "@/lib/db";
+import { getTenantBySlug, updateTenant } from "@/lib/firebase/tenant";
 import { upgradeSettings } from "@/lib/settings";
 import { z } from "zod";
 
@@ -16,15 +16,7 @@ export async function GET(
   { params }: { params: { tenantSlug: string } }
 ) {
   try {
-    const tenant = await prismaRW.tenant.findUnique({
-      where: { slug: params.tenantSlug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        settingsJson: true,
-      }
-    });
+    const tenant = await getTenantBySlug(params.tenantSlug);
 
     if (!tenant) {
       return NextResponse.json(
@@ -33,7 +25,7 @@ export async function GET(
       );
     }
 
-    const settings = upgradeSettings(tenant.settingsJson);
+    const settings = upgradeSettings(tenant.settings as any);
     
     return NextResponse.json({
       ok: true,
@@ -61,13 +53,7 @@ export async function PUT(
   { params }: { params: { tenantSlug: string } }
 ) {
   try {
-    const tenant = await prismaRW.tenant.findUnique({
-      where: { slug: params.tenantSlug },
-      select: {
-        id: true,
-        settingsJson: true,
-      }
-    });
+    const tenant = await getTenantBySlug(params.tenantSlug);
 
     if (!tenant) {
       return NextResponse.json(
@@ -80,7 +66,7 @@ export async function PUT(
     const validatedData = seoUpdateSchema.parse(body);
 
     // Get current settings and upgrade them
-    const currentSettings = upgradeSettings(tenant.settingsJson);
+    const currentSettings = upgradeSettings(tenant.settings as any);
     
     // Update SEO settings
     const updatedSettings = {
@@ -92,11 +78,8 @@ export async function PUT(
     };
 
     // Save updated settings
-    await prismaRW.tenant.update({
-      where: { id: tenant.id },
-      data: {
-        settingsJson: updatedSettings,
-      }
+    await updateTenant(tenant.id, {
+      settings: updatedSettings,
     });
 
     return NextResponse.json({

@@ -1,4 +1,5 @@
-import { prismaRW } from '@/lib/db'
+import { getTenantDocuments } from '@/lib/db'
+import { getTenantBySlug } from '@/lib/firebase/tenant'
 
 export interface AdminApiResponse<T = any> {
   ok: boolean
@@ -54,17 +55,7 @@ export async function adminFetch<T = any>(
  */
 export async function getTenantForAdmin(tenantSlug: string) {
   try {
-    const tenant = await prismaRW.tenant.findUnique({
-      where: { slug: tenantSlug },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        template: true,
-        status: true,
-        settingsJson: true,
-      },
-    })
+    const tenant = await getTenantBySlug(tenantSlug)
 
     if (!tenant) {
       return null

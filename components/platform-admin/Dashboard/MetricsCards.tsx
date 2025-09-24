@@ -1,5 +1,4 @@
-import { prisma } from "@/lib/prisma";
-import { TenantStatus } from "@prisma/client";
+import { getTenantDocuments } from "@/lib/db";
 
 export default async function MetricsCards() {
   // Fetch key metrics from database
@@ -9,9 +8,21 @@ export default async function MetricsCards() {
     totalUsers,
     totalRevenue
   ] = await Promise.all([
-    prisma.tenant.count(),
-    prisma.tenant.count({ where: { status: TenantStatus.ACTIVE } }),
-    prisma.user.count(),
+    // Get total merchants count
+    (async () => {
+      const tenants = await getTenantDocuments('tenants', '');
+      return tenants.length;
+    })(),
+    // Get active merchants count
+    (async () => {
+      const tenants = await getTenantDocuments('tenants', '');
+      return tenants.filter((t: any) => t.status === 'ACTIVE').length;
+    })(),
+    // Get total users count
+    (async () => {
+      const users = await getTenantDocuments('users', '');
+      return users.length;
+    })(),
     // Mock revenue calculation - replace with actual billing data
     125000
   ]);

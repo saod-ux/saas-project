@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { prismaRW } from '@/lib/db'
+import { getTenantBySlug, getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the demo tenant
-    const demoTenant = await prismaRW.tenant.findUnique({
-      where: { slug: 'demo-store' }
-    })
+    const demoTenant = await getTenantBySlug('demo-store')
 
     if (!demoTenant) {
       return NextResponse.json(
@@ -26,12 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has membership
-    const existingMembership = await prismaRW.membership.findFirst({
-      where: {
-        userId: user.id,
-        tenantId: demoTenant.id
-      }
-    })
+    const allMemberships = await getTenantDocuments('memberships', demoTenant.id)
+    const existingMembership = allMemberships.find((m: any) => 
+      m.userId === user.id
+    )
 
     if (existingMembership) {
       return NextResponse.json({
@@ -41,13 +37,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create membership with OWNER role
-    const membership = await prismaRW.membership.create({
-      data: {
-        userId: user.id,
-        tenantId: demoTenant.id,
-        role: 'OWNER',
-        status: 'ACTIVE'
-      }
+    const membership = await createDocument('memberships', {
+      userId: user.id,
+      tenantId: demoTenant.id,
+      role: 'OWNER',
+      status: 'ACTIVE'
     })
 
     return NextResponse.json({
