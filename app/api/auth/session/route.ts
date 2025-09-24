@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyIdToken } from '@/lib/firebase/auth-server';
+import { adminAuth } from '@/lib/firebase/server';
 import { getTenantDocuments } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify Firebase ID token
-    const decodedToken = await verifyIdToken(idToken);
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
     const uid = decodedToken.uid;
     const email = decodedToken.email;
 
