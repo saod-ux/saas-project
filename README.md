@@ -166,3 +166,4 @@ npm run dev
 - **acme**: `http://localhost:3000/acme/` and `http://localhost:3000/acme/admin/products`
 - **moka**: `http://localhost:3000/moka/` and `http://localhost:3000/moka/admin/products`
 - Verify complete tenant isolation
+# Force Vercel to use latest code
