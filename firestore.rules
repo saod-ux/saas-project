@@ -1,0 +1,149 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isPlatformAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/platformAdmins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/platformAdmins/$(request.auth.uid)).data.role in ['SUPER_ADMIN', 'ADMIN'];
+    }
+    
+    function isTenantAdmin(tenantId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + tenantId)) &&
+        get(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + tenantId)).data.role in ['OWNER', 'ADMIN'];
+    }
+    
+    function isTenantStaff(tenantId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + tenantId)) &&
+        get(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + tenantId)).data.role in ['OWNER', 'ADMIN', 'STAFF'];
+    }
+    
+    function isCustomer(tenantId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)) &&
+        get(/databases/$(database)/documents/tenantUsers/$(request.auth.uid + '_' + tenantId)).data.tenantId == tenantId;
+    }
+    
+    function hasTenantId(tenantId) {
+      return resource.data.tenantId == tenantId;
+    }
+    
+    function hasTenantIdInRequest(tenantId) {
+      return request.resource.data.tenantId == tenantId;
+    }
+    
+    // Platform-level collections (only platform admins)
+    match /platformAdmins/{adminId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == adminId;
+    }
+    
+    match /auditLogs/{logId} {
+      allow read: if isPlatformAdmin();
+      allow write: if isPlatformAdmin();
+    }
+    
+    // Tenants collection (platform admins only)
+    match /tenants/{tenantId} {
+      allow read, write: if isPlatformAdmin();
+      
+      // Allow tenant admins to read their own tenant data
+      allow read: if isTenantAdmin(tenantId);
+    }
+    
+    // Tenant-scoped collections
+    match /products/{productId} {
+      allow read: if isAuthenticated() && hasTenantId(resource.data.tenantId);
+      allow write: if isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId);
+    }
+    
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated() && hasTenantId(resource.data.tenantId);
+      allow write: if isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId);
+    }
+    
+    match /heroSlides/{slideId} {
+      allow read: if isAuthenticated() && hasTenantId(resource.data.tenantId);
+      allow write: if isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId);
+    }
+    
+    match /pages/{pageId} {
+      allow read: if isAuthenticated() && hasTenantId(resource.data.tenantId);
+      allow write: if isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId);
+    }
+    
+    // Order-related collections
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (
+        isTenantStaff(resource.data.tenantId) || 
+        (isCustomer(resource.data.tenantId) && resource.data.customerId == request.auth.uid)
+      );
+      allow write: if isAuthenticated() && (
+        isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId) ||
+        (isCustomer(resource.data.tenantId) && request.resource.data.customerId == request.auth.uid)
+      );
+    }
+    
+    match /orderItems/{itemId} {
+      allow read: if isAuthenticated() && (
+        isTenantStaff(resource.data.tenantId) || 
+        (isCustomer(resource.data.tenantId) && resource.data.customerId == request.auth.uid)
+      );
+      allow write: if isAuthenticated() && (
+        isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId) ||
+        (isCustomer(resource.data.tenantId) && request.resource.data.customerId == request.auth.uid)
+      );
+    }
+    
+    // Payment collection (tenant admins and customers who own the order)
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (
+        isTenantStaff(resource.data.tenantId) || 
+        (isCustomer(resource.data.tenantId) && resource.data.customerId == request.auth.uid)
+      );
+      allow write: if isAuthenticated() && (
+        isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId) ||
+        (isCustomer(resource.data.tenantId) && request.resource.data.customerId == request.auth.uid)
+      );
+    }
+    
+    // User management collections
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    match /tenantUsers/{tenantUserId} {
+      allow read: if isAuthenticated() && (
+        isTenantAdmin(resource.data.tenantId) ||
+        (request.auth.uid == resource.data.userId)
+      );
+      allow write: if isAuthenticated() && (
+        isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId) ||
+        (request.auth.uid == request.resource.data.userId)
+      );
+    }
+    
+    match /memberships/{membershipId} {
+      allow read: if isAuthenticated() && (
+        isTenantAdmin(resource.data.tenantId) ||
+        (request.auth.uid == resource.data.userId)
+      );
+      allow write: if isAuthenticated() && (
+        isTenantAdmin(resource.data.tenantId) && hasTenantIdInRequest(resource.data.tenantId) ||
+        (request.auth.uid == request.resource.data.userId)
+      );
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

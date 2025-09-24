@@ -29,6 +29,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Validate i18n keys
+        run: npm run check-i18n
+
       - name: Validate Storage Configuration
         run: npm run validate:storage
 

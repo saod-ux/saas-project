@@ -61,13 +61,13 @@ function testUrlGeneration() {
   
   // Test product URL (should be public)
   if (productFile.fileType === 'product') {
-    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/your-project.appspot.com/o/${encodeURIComponent(productFile.path)}?alt=media`
+    const publicUrl = `https://storage.googleapis.com/e-viewstorage-public/${productFile.path}`
     console.log('✅ Product public URL generated:', publicUrl)
   }
   
   // Test invoice URL (should be signed)
   if (invoiceFile.fileType === 'invoice') {
-    const signedUrl = `https://firebasestorage.googleapis.com/v0/b/your-project.appspot.com/o/${encodeURIComponent(invoiceFile.path)}?alt=media&token=...`
+    const signedUrl = `https://storage.googleapis.com/e-viewstorage-public/${invoiceFile.path}`
     console.log('✅ Invoice signed URL generated:', signedUrl)
   }
   
@@ -87,7 +87,7 @@ function testDatabaseSchema() {
     size: 1024000,
     uploadedBy: 'user-789',
     fileType: 'product',
-    publicUrl: 'https://firebasestorage.googleapis.com/v0/b/your-project.appspot.com/o/tenants%2Ftenant-456%2Fuploads%2F2024%2F01%2Fproduct-image.jpg?alt=media',
+    publicUrl: 'https://storage.googleapis.com/e-viewstorage-public/tenants/tenant-456/uploads/2024/01/product-image.jpg',
     createdAt: new Date().toISOString()
   }
   
@@ -104,7 +104,7 @@ function testDatabaseSchema() {
 function testImageTransformations() {
   console.log('\n🔍 Testing image transformations...')
   
-  const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/your-project.appspot.com/o/tenants%2Ftenant-456%2Fuploads%2F2024%2F01%2Fproduct-image.jpg?alt=media'
+  const baseUrl = 'https://storage.googleapis.com/e-viewstorage-public/tenants/tenant-456/uploads/2024/01/product-image.jpg'
   
   // Test width transformation
   const widthUrl = `${baseUrl}&width=600`

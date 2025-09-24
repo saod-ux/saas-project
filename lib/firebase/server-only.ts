@@ -5,6 +5,7 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import { getStorageBucket } from '@/lib/config/storage';
 
 let serverAuth: any = null;
 let serverDb: any = null;
@@ -52,8 +53,8 @@ YwTTb9HdpzoGpdLDqcDY5K0=
       privateKey: privateKey.replace(/\\n/g, '\n'),
     };
 
-// Use env-configured public bucket; default to e-viewstorage-public
-const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'e-viewstorage-public';
+// Use centralized bucket configuration
+const storageBucket = getStorageBucket(false);
 
     serverApp = getApps().length === 0 ? initializeApp({
       credential: cert(serviceAccount),
