@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Phone } from 'lucide-react';
+import EnvProbe from './EnvProbe';
 
 function SignInContent() {
   const [email, setEmail] = useState('');
@@ -296,6 +297,9 @@ function SignInContent() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Temporary environment probe for debugging */}
+      <EnvProbe />
     </div>
   );
 }
