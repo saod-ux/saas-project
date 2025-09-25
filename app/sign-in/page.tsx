@@ -77,7 +77,38 @@ function SignInContent() {
         window.location.href = getRedirectUrl();
       }
     } catch (error: any) {
-      toast.error(error.message || 'Sign in failed');
+      console.error('Sign in error:', error);
+      
+      // Handle specific Firebase Auth error codes
+      let errorMessage = 'Sign in failed';
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+            errorMessage = 'No account found with this email address';
+            break;
+          case 'auth/wrong-password':
+            errorMessage = 'Incorrect password';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'This account has been disabled';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many failed attempts. Please try again later';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection';
+            break;
+          default:
+            errorMessage = `Authentication error: ${error.code}`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +136,35 @@ function SignInContent() {
         window.location.href = getRedirectUrl();
       }
     } catch (error: any) {
-      toast.error(error.message || 'Sign up failed');
+      console.error('Sign up error:', error);
+      
+      // Handle specific Firebase Auth error codes
+      let errorMessage = 'Sign up failed';
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'An account with this email already exists';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak. Please choose a stronger password';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection';
+            break;
+          default:
+            errorMessage = `Registration error: ${error.code}`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
