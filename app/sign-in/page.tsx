@@ -14,7 +14,7 @@ import { Eye, EyeOff, Loader2, Phone } from 'lucide-react';
 import EnvProbe from './EnvProbe';
 
 function SignInContent() {
-  const [email, setEmail] = useState('testuser@example.com');
+  const [email, setEmail] = useState('admin@test.com');
   const [password, setPassword] = useState('TestPassword123!');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
