@@ -3,13 +3,26 @@ import { NextRequest, NextResponse } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  // Public routes that should never be protected
+  const publicRoutes = [
+    '/sign-in',
+    '/sign-up', 
+    '/debug-env',
+    '/create-user',
+    '/login',
+    '/checkout',
+    '/no-tenant',
+    '/onboarding'
+  ];
+  
   // Skip middleware for static files, API routes, and internal Next.js paths
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/apple-touch-icon') ||
-    pathname.includes('.')
+    pathname.includes('.') ||
+    publicRoutes.includes(pathname)
   ) {
     return NextResponse.next();
   }
