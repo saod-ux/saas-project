@@ -17,21 +17,17 @@ export function getClientFirebaseConfig() {
     console.error('[ENV] Missing Firebase envs:', missing);
     console.error('[ENV] Available env vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_FIREBASE')));
     
-    // TEMPORARY FALLBACK - Replace with your actual Firebase config
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('[ENV] Using temporary fallback config - PLEASE FIX ENVIRONMENT VARIABLES');
-      return {
-        apiKey: "AIzaSyC...", // TODO: Replace with your actual API key from Firebase Console
-        authDomain: "e-view-7ebc8.firebaseapp.com",
-        projectId: "e-view-7ebc8",
-        storageBucket: "e-view-7ebc8.appspot.com",
-        messagingSenderId: "123456789", // TODO: Replace with your actual sender ID
-        appId: "1:123456789:web:abcdef", // TODO: Replace with your actual app ID
-        measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-      };
-    }
-    
-    throw new Error(`[ENV] Missing Firebase client envs: ${missing.join(', ')}`);
+    // TEMPORARY FALLBACK - Use actual Firebase config from .env.local
+    console.warn('[ENV] Using fallback config - environment variables not loaded properly');
+    return {
+      apiKey: "AIzaSyDrlglslH6lm0NiW4mUZobV6QkwPn97x4A",
+      authDomain: "e-view-7ebc8.firebaseapp.com",
+      projectId: "e-view-7ebc8",
+      storageBucket: "e-viewstorage-public",
+      messagingSenderId: "851268561585",
+      appId: "1:851268561585:web:64b4441d81b6ee7b791090",
+      measurementId: "G-GL1JLMLZVE",
+    };
   }
   
   return {
