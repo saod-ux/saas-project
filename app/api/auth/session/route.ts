@@ -9,12 +9,21 @@ export async function POST(request: NextRequest) {
   try {
     const { idToken } = await request.json();
     
+    console.log('🔍 Session creation request:', { 
+      hasIdToken: !!idToken, 
+      tokenLength: idToken?.length,
+      tokenStart: idToken?.substring(0, 20) + '...',
+      tokenEnd: '...' + idToken?.substring(idToken.length - 20)
+    });
+    
     if (!idToken) {
       return NextResponse.json({ ok: false, error: 'Missing idToken' }, { status: 400 });
     }
 
     // Verify Firebase ID token
+    console.log('🔍 Verifying Firebase ID token...');
     const decodedToken = await adminAuth.verifyIdToken(idToken);
+    console.log('✅ Firebase ID token verified:', { uid: decodedToken.uid, email: decodedToken.email });
     const uid = decodedToken.uid;
     const email = decodedToken.email;
 

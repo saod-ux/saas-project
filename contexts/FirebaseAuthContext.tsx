@@ -120,7 +120,11 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
       
       // Create session after successful sign-in
       const idToken = await result.user.getIdToken();
-      console.log('🔍 Creating session with ID token...');
+      console.log('🔍 Creating session with ID token...', { 
+        tokenLength: idToken?.length, 
+        tokenStart: idToken?.substring(0, 20) + '...',
+        tokenEnd: '...' + idToken?.substring(idToken.length - 20)
+      });
       await createSession(idToken);
       console.log('✅ Session created successfully');
     } catch (error: any) {
