@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
           role: 'platformAdmin', // Give platform admin role for new users
           createdAt: new Date().toISOString(),
         };
-        await createDocument('platformUsers', '', platformUser);
+        await createDocument('platformUsers', platformUser);
       }
       
       if (platformUser?.role) {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
             role: 'admin', // Give admin role for new users
             createdAt: new Date().toISOString(),
           };
-          await createDocument('tenantUsers', tenant.id, tenantUser);
+          await createDocument('tenantUsers', tenantUser);
         }
         
         if (tenantUser?.role) {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           slug: 'demo-store',
           createdAt: new Date().toISOString(),
         };
-        await createDocument('tenants', '', defaultTenant);
+        await createDocument('tenants', defaultTenant);
         
         const tenantUser = {
           uid,
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
           role: 'admin',
           createdAt: new Date().toISOString(),
         };
-        await createDocument('tenantUsers', 'demo-store', tenantUser);
+        await createDocument('tenantUsers', tenantUser);
         
         tenantRole = 'admin';
         tenantSlug = 'demo-store';

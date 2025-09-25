@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    await createDocument('platformUsers', '', platformUser);
+    await createDocument('platformUsers', platformUser);
 
     // Also create a tenant user for demo
     const tenantUser = {
@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
         slug: 'demo-store',
         createdAt: new Date().toISOString(),
       };
-      await createDocument('tenants', '', defaultTenant);
+      await createDocument('tenants', defaultTenant);
     }
 
-    await createDocument('tenantUsers', tenantId, tenantUser);
+    await createDocument('tenantUsers', tenantUser);
 
     return NextResponse.json({
       ok: true,
