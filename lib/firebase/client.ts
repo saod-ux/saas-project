@@ -22,6 +22,9 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
 console.log('🔍 Firebase Auth initialized:', { auth: !!auth });
 
+// Log project ID for sanity check
+console.log('[CLIENT] Firebase project ID:', app.options.projectId);
+
 // Export Firebase services
 export const firebaseApp = app;
 export { auth, db };

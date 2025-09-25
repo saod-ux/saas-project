@@ -5,27 +5,34 @@ import { getTenantDocuments, createDocument } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { idToken } = await request.json();
-    
-    console.log('🔍 Session creation request:', { 
-      hasIdToken: !!idToken, 
-      tokenLength: idToken?.length,
-      tokenStart: idToken?.substring(0, 20) + '...',
-      tokenEnd: '...' + idToken?.substring(idToken.length - 20)
+    const { idToken } = await req.json().catch(() => ({} as any));
+
+    console.log("[SERVER] Session request", {
+      hasIdToken: Boolean(idToken),
+      tokenLength: idToken?.length ?? 0,
+      start: typeof idToken === "string" ? idToken.slice(0, 20) : undefined,
+      end: typeof idToken === "string" ? idToken.slice(-20) : undefined,
     });
-    
-    if (!idToken) {
-      return NextResponse.json({ ok: false, error: 'Missing idToken' }, { status: 400 });
+
+    if (!idToken || typeof idToken !== "string") {
+      return NextResponse.json(
+        { ok: false, error: "NO_TOKEN" },
+        { status: 400 }
+      );
     }
 
-    // Verify Firebase ID token
-    console.log('🔍 Verifying Firebase ID token...');
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    console.log('✅ Firebase ID token verified:', { uid: decodedToken.uid, email: decodedToken.email });
-    const uid = decodedToken.uid;
-    const email = decodedToken.email;
+    console.log("[SERVER] Verifying ID token…");
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    console.log("[SERVER] Token verified", {
+      uid: decoded.uid,
+      email: decoded.email,
+      projectId: decoded.aud, // aud usually matches project number; optional
+    });
+    
+    const uid = decoded.uid;
+    const email = decoded.email;
 
     if (!uid || !email) {
       return NextResponse.json({ ok: false, error: 'Invalid token' }, { status: 401 });
@@ -171,9 +178,17 @@ export async function POST(request: NextRequest) {
     }
 
     return response;
-  } catch (error) {
-    console.error('Session creation error:', error);
-    return NextResponse.json({ ok: false, error: 'Authentication failed' }, { status: 401 });
+  } catch (err: any) {
+    console.error("[SERVER] Session creation error", {
+      name: err?.name,
+      code: err?.code,
+      message: err?.message,
+      stack: err?.stack?.split("\n").slice(0, 3).join("\n"),
+    });
+    return NextResponse.json(
+      { ok: false, error: err?.code || "SESSION_ERROR", message: err?.message },
+      { status: 401 }
+    );
   }
 }
 

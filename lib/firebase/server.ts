@@ -7,6 +7,7 @@ export const runtime = 'nodejs';
 // Initialize Firebase Admin SDK (server-only)
 if (!getApps().length) {
   const { projectId, clientEmail, privateKey } = getServerFirebaseConfig();
+  console.log('[SERVER] Firebase project ID:', projectId);
   initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
   });

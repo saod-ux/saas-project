@@ -118,14 +118,33 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log('✅ Firebase sign in successful:', { uid: result.user.uid });
       
-      // Create session after successful sign-in
-      const idToken = await result.user.getIdToken();
-      console.log('🔍 Creating session with ID token...', { 
-        tokenLength: idToken?.length, 
-        tokenStart: idToken?.substring(0, 20) + '...',
-        tokenEnd: '...' + idToken?.substring(idToken.length - 20)
+      // Get current user and force fresh token
+      const user = auth.currentUser;
+      if (!user) throw new Error("No currentUser after sign-in");
+      
+      // Force refresh to avoid stale/malformed tokens
+      const idToken = await user.getIdToken(true);
+      
+      console.log("[CLIENT] Got ID token", {
+        tokenLength: idToken?.length ?? 0,
+        start: idToken?.slice(0, 20),
+        end: idToken?.slice(-20),
       });
-      await createSession(idToken);
+      
+      const res = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+        cache: "no-store",
+      });
+      
+      const data = await res.json();
+      console.log("[CLIENT] Session response", { status: res.status, data });
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Session creation failed');
+      }
+      
       console.log('✅ Session created successfully');
     } catch (error: any) {
       console.error('❌ Sign in error:', error);

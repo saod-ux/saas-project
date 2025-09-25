@@ -5,6 +5,7 @@ export function middleware(request: NextRequest) {
   
   // Public routes that should never be protected
   const publicRoutes = [
+    '/',
     '/sign-in',
     '/sign-up', 
     '/debug-env',
