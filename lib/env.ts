@@ -15,6 +15,22 @@ export function getClientFirebaseConfig() {
   const missing = required.filter(n => !process.env[n]);
   if (missing.length > 0) {
     console.error('[ENV] Missing Firebase envs:', missing);
+    console.error('[ENV] Available env vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_FIREBASE')));
+    
+    // TEMPORARY FALLBACK - Replace with your actual Firebase config
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[ENV] Using temporary fallback config - PLEASE FIX ENVIRONMENT VARIABLES');
+      return {
+        apiKey: "AIzaSyC...", // Replace with your actual API key
+        authDomain: "e-view-7ebc8.firebaseapp.com",
+        projectId: "e-view-7ebc8",
+        storageBucket: "e-view-7ebc8.appspot.com",
+        messagingSenderId: "123456789", // Replace with your actual sender ID
+        appId: "1:123456789:web:abcdef", // Replace with your actual app ID
+        measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+      };
+    }
+    
     throw new Error(`[ENV] Missing Firebase client envs: ${missing.join(', ')}`);
   }
   
