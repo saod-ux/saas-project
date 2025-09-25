@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 
@@ -132,10 +131,12 @@ export default function CreateUserPage() {
             </div>
 
             <div className="flex items-center space-x-2">
-              <Checkbox
+              <input
                 id="markVerified"
+                type="checkbox"
+                className="h-4 w-4 rounded border"
                 checked={formData.markVerified}
-                onCheckedChange={(checked) => handleInputChange('markVerified', checked as boolean)}
+                onChange={(e) => handleInputChange('markVerified', e.target.checked)}
               />
               <Label htmlFor="markVerified">Mark email as verified</Label>
             </div>
