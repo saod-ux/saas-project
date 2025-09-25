@@ -53,6 +53,8 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
       return;
     }
 
+    console.log('🔍 Firebase Auth Context - Initializing...', { auth: !!auth, onAuthStateChanged: !!onAuthStateChanged });
+
     if (!auth || !onAuthStateChanged) {
       console.warn('⚠️ Firebase Auth is not available. Please check your Firebase configuration.');
       setLoading(false);
@@ -60,11 +62,13 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('🔍 Firebase Auth State Changed:', { user: !!user, uid: user?.uid });
       setUser(user);
       setLoading(false);
     });
 
     setFirebaseLoaded(true);
+    console.log('✅ Firebase Auth Context - Initialized successfully');
     return unsubscribe;
   }, []);
 
@@ -98,6 +102,8 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('🔍 Sign In Attempt:', { email, firebaseLoaded, auth: !!auth, signInWithEmailAndPassword: !!signInWithEmailAndPassword });
+    
     if (!firebaseLoaded) {
       throw new Error('Firebase is not loaded yet. Please try again.');
     }
@@ -108,12 +114,17 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
 
     try {
       setError(null);
+      console.log('🔍 Attempting Firebase sign in...');
       const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ Firebase sign in successful:', { uid: result.user.uid });
       
       // Create session after successful sign-in
       const idToken = await result.user.getIdToken();
+      console.log('🔍 Creating session with ID token...');
       await createSession(idToken);
+      console.log('✅ Session created successfully');
     } catch (error: any) {
+      console.error('❌ Sign in error:', error);
       setError(error.message || 'Sign in failed');
       throw error;
     }
