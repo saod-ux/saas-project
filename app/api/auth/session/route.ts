@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/server';
-import { getTenantDocuments } from '@/lib/db';
+import { getTenantDocuments, createDocument } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,12 +26,25 @@ export async function POST(request: NextRequest) {
     let platformRole = null;
     try {
       const platformUsers = await getTenantDocuments('platformUsers', '');
-      const platformUser = platformUsers.find((user: any) => user.uid === uid);
+      let platformUser = platformUsers.find((user: any) => user.uid === uid);
+      
+      if (!platformUser) {
+        // Create platform user if doesn't exist
+        console.log('Creating new platform user:', uid);
+        platformUser = {
+          uid,
+          email,
+          role: 'platformAdmin', // Give platform admin role for new users
+          createdAt: new Date().toISOString(),
+        };
+        await createDocument('platformUsers', '', platformUser);
+      }
+      
       if (platformUser?.role) {
         platformRole = platformUser.role;
       }
     } catch (error) {
-      console.log('No platform role found for user:', uid);
+      console.log('Error handling platform user:', error);
     }
 
     // Check tenant roles (for now, we'll use a default tenant)
@@ -40,17 +53,55 @@ export async function POST(request: NextRequest) {
     try {
       // For MVP, check if user has any tenant membership
       const allTenants = await getTenantDocuments('tenants', '');
+      let foundTenant = false;
+      
       for (const tenant of allTenants) {
         const tenantUsers = await getTenantDocuments('tenantUsers', tenant.id);
-        const tenantUser = tenantUsers.find((user: any) => user.uid === uid);
+        let tenantUser = tenantUsers.find((user: any) => user.uid === uid);
+        
+        if (!tenantUser) {
+          // Create tenant user if doesn't exist
+          console.log('Creating new tenant user:', uid, 'for tenant:', tenant.id);
+          tenantUser = {
+            uid,
+            email,
+            role: 'admin', // Give admin role for new users
+            createdAt: new Date().toISOString(),
+          };
+          await createDocument('tenantUsers', tenant.id, tenantUser);
+        }
+        
         if (tenantUser?.role) {
           tenantRole = tenantUser.role;
           tenantSlug = tenant.slug;
+          foundTenant = true;
           break;
         }
       }
+      
+      // If no tenants exist, create a default one
+      if (!foundTenant && allTenants.length === 0) {
+        console.log('Creating default tenant for user:', uid);
+        const defaultTenant = {
+          name: 'Demo Store',
+          slug: 'demo-store',
+          createdAt: new Date().toISOString(),
+        };
+        await createDocument('tenants', '', defaultTenant);
+        
+        const tenantUser = {
+          uid,
+          email,
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        };
+        await createDocument('tenantUsers', 'demo-store', tenantUser);
+        
+        tenantRole = 'admin';
+        tenantSlug = 'demo-store';
+      }
     } catch (error) {
-      console.log('No tenant role found for user:', uid);
+      console.log('Error handling tenant user:', error);
     }
 
     // Set secure HttpOnly cookies

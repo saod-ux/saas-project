@@ -21,12 +21,12 @@ export function getClientFirebaseConfig() {
     if (process.env.NODE_ENV === 'production') {
       console.warn('[ENV] Using temporary fallback config - PLEASE FIX ENVIRONMENT VARIABLES');
       return {
-        apiKey: "AIzaSyC...", // Replace with your actual API key
+        apiKey: "AIzaSyC...", // TODO: Replace with your actual API key from Firebase Console
         authDomain: "e-view-7ebc8.firebaseapp.com",
         projectId: "e-view-7ebc8",
         storageBucket: "e-view-7ebc8.appspot.com",
-        messagingSenderId: "123456789", // Replace with your actual sender ID
-        appId: "1:123456789:web:abcdef", // Replace with your actual app ID
+        messagingSenderId: "123456789", // TODO: Replace with your actual sender ID
+        appId: "1:123456789:web:abcdef", // TODO: Replace with your actual app ID
         measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
       };
     }
