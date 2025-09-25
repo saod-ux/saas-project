@@ -22,7 +22,7 @@ function SignInContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [phoneConfirmation, setPhoneConfirmation] = useState<any>(null);
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
-  const { signIn, signInWithGoogle, signInWithPhone, confirmPhoneCode, createSession } = useFirebaseAuth();
+  const { signIn, signUp, signInWithGoogle, signInWithPhone, confirmPhoneCode, createSession } = useFirebaseAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -78,6 +78,34 @@ function SignInContent() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Sign in failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (isLoading) return;
+
+    if (!email || !password) {
+      toast.error('Please enter email and password');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await signUp(email, password);
+      toast.success('Account created successfully!');
+      
+      // Get roles from session and redirect accordingly
+      const idToken = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
+      if (idToken) {
+        const roles = await createSession(idToken);
+        window.location.href = getRedirectUrl(roles);
+      } else {
+        window.location.href = getRedirectUrl();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Sign up failed');
     } finally {
       setIsLoading(false);
     }
@@ -227,16 +255,28 @@ function SignInContent() {
               Continue with Google
             </Button>
             
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => setShowPhoneAuth(!showPhoneAuth)}
-              disabled={isLoading}
-            >
-              <Phone className="mr-2 h-4 w-4" />
-              {showPhoneAuth ? 'Hide Phone Login' : 'Sign in with Phone'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowPhoneAuth(!showPhoneAuth)}
+                disabled={isLoading}
+              >
+                <Phone className="mr-2 h-4 w-4" />
+                {showPhoneAuth ? 'Hide Phone' : 'Phone'}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={handleSignUp}
+                disabled={isLoading}
+              >
+                Create Account
+              </Button>
+            </div>
             
             {showPhoneAuth && (
               <div className="space-y-4 pt-4 border-t">
