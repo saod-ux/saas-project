@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantDocuments, createDocument, deleteDocument, getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantDocuments, createDocument, deleteDocument } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { requireTenantAndRole } from "@/lib/rbac";
 import { revalidatePath } from "next/cache";
 

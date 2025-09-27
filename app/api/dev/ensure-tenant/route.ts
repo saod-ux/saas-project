@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getTenantBySlug, createDocument, updateDocument } from "@/lib/firebase/tenant";
+import { createDocument, updateDocument } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 
 export async function POST(req: Request) {
   if (process.env.NODE_ENV !== "development") {

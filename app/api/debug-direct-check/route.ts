@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerDb } from "@/lib/firebase/db";
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

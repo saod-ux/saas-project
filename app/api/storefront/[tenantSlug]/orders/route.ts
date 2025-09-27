@@ -1,75 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTenantDocuments } from '@/lib/db';
-import { loadTenantBySlug } from '@/lib/loadTenant';
-import { getCustomerWithSession } from '@/lib/customer-auth';
+import { getDocument } from '@/lib/db';
+import { requireUserTypeMiddleware, getUserAuthContext } from '@/lib/auth-middleware';
+import { log } from '@/lib/logger';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { tenantSlug: string } }
 ) {
+  const logger = log.child({ method: 'GET', path: request.nextUrl.pathname, tenantSlug: params.tenantSlug });
+  
   try {
-    const { tenantSlug } = params;
+    // Ensure user is authenticated
+    const authCheck = await requireUserTypeMiddleware(request, ['customer'], request.nextUrl.pathname);
+    if (authCheck) return authCheck;
+
+    const userContext = await getUserAuthContext(request);
+    if (!userContext || !userContext.isAuthenticated || userContext.userType !== 'customer') {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get tenant info
+    const tenants = await getDocument('tenants', '', '');
+    const tenant = tenants.find((t: any) => t.slug === params.tenantSlug);
     
-    // Load tenant
-    const tenant = await loadTenantBySlug(tenantSlug);
     if (!tenant) {
-      return NextResponse.json(
-        { ok: false, error: 'Store not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, error: 'Tenant not found' }, { status: 404 });
     }
 
-    // Get customer session
-    const customer = await getCustomerWithSession(request, tenant.id);
-    if (!customer) {
-      return NextResponse.json(
-        { ok: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Get customer orders
-    const orders = await getTenantDocuments('orders', tenant.id)
-    const customerOrders = orders.filter((order: any) => order.tenantUserId === customer.id)
+    // Get all orders for the tenant
+    const orders = await getDocument('orders', '', tenant.id);
     
-    // Get order items and products for each order
-    const orderItems = await getTenantDocuments('orderItems', tenant.id)
-    const products = await getTenantDocuments('products', tenant.id)
-    
-    const ordersWithItems = customerOrders.map((order: any) => {
-      const items = orderItems.filter((item: any) => item.orderId === order.id)
-      const itemsWithProducts = items.map((item: any) => {
-        const product = products.find((p: any) => p.id === item.productId)
-        return {
-          ...item,
-          product: product ? {
-            id: product.id,
-            name: product.title,
-            slug: product.slug,
-            price: product.price,
-            currency: product.currency,
-            images: product.gallery || []
-          } : null
-        }
-      })
-      
-      return {
-        ...order,
-        orderItems: itemsWithProducts
-      }
-    }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Filter orders for the current customer
+    const customerOrders = orders.filter((order: any) => order.customerId === userContext.uid);
 
-    return NextResponse.json({
-      ok: true,
-      data: ordersWithItems
+    logger.info('Customer orders retrieved', { 
+      customerId: userContext.uid, 
+      orderCount: customerOrders.length 
     });
 
+    return NextResponse.json({ ok: true, data: customerOrders });
+
   } catch (error) {
-    console.error('Get customer orders error:', error);
+    logger.error('Error fetching customer orders:', error);
+    
     return NextResponse.json(
-      { ok: false, error: 'Failed to fetch orders' },
+      { ok: false, error: error instanceof Error ? error.message : 'Failed to fetch orders' },
       { status: 500 }
     );
   }
 }
-

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { getTenantDocuments } from "@/lib/db";
 
 export const runtime = "nodejs";

@@ -1,5 +1,5 @@
 import MerchantDetailClient from "@/components/platform-admin/Merchants/MerchantDetailClient";
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";

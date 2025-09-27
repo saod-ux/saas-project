@@ -9,7 +9,7 @@
 // Storage bucket configuration
 export const STORAGE_CONFIG = {
   // Primary bucket name - this is the single source of truth
-  BUCKET_NAME: 'e-viewstorage-public',
+  BUCKET_NAME: 'e-view-7ebc8.appspot.com',
   
   // URL format for public access
   PUBLIC_URL_BASE: 'https://storage.googleapis.com',

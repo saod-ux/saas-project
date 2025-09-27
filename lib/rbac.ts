@@ -1,5 +1,6 @@
 import { getUserFromRequest } from './firebase/auth-server';
-import { getTenantBySlug, getTenantDocuments, COLLECTIONS } from './firebase/tenant';
+import { getTenantBySlug } from './services/tenant';
+import { getTenantDocuments, COLLECTIONS } from './firebase/tenant';
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 

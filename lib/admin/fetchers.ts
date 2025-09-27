@@ -1,5 +1,5 @@
 import { getTenantDocuments } from '@/lib/db'
-import { getTenantBySlug } from '@/lib/firebase/tenant'
+import { getTenantBySlug } from '@/lib/services/tenant'
 
 export interface AdminApiResponse<T = any> {
   ok: boolean

@@ -3,6 +3,21 @@ import arMessages from '@/messages/ar.json';
 
 type Messages = typeof enMessages;
 
+// Language types and constants
+export type Language = 'ar' | 'en';
+export const DEFAULT_LANGUAGE: Language = 'en';
+
+// Global language state
+let currentLanguage: Language = DEFAULT_LANGUAGE;
+
+export function getCurrentLanguage(): Language {
+  return currentLanguage;
+}
+
+export function setCurrentLanguage(language: Language): void {
+  currentLanguage = language;
+}
+
 export function getTranslations(locale: string, namespace?: string) {
   const messages = locale.startsWith('ar') ? arMessages : enMessages;
   

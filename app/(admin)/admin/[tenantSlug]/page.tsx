@@ -1,60 +1,53 @@
-import { getTenantBySlug } from "@/lib/firebase/tenant";
-import { getTenantDocuments } from "@/lib/db";
+import { getTenantBySlug } from "@/lib/services/tenant";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
+import { notFound } from "next/navigation";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export default async function Overview({ params }: { params: { tenantSlug: string } }) {
-  const tenant = await getTenantBySlug(params.tenantSlug);
+export default async function AdminPage({ params }: {
+  params: Promise<{ tenantSlug: string }>;
+}) {
+  const { tenantSlug } = await params;
+  const tenant = await getTenantBySlug(tenantSlug);
   
   if (!tenant) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-4">Overview</h1>
-        <div className="text-red-600">Tenant not found</div>
-      </div>
-    );
+    return notFound();
   }
 
-  // Fetch counts with no-store cache to ensure fresh data
-  // Handle case where models might not exist yet
-  let products = 0;
-  let categories = 0;
-  let orders = 0;
+  // Get dashboard data
+  let stats = {
+    totalProducts: 0,
+    totalOrders: 0,
+    totalCustomers: 0,
+    totalRevenue: 0
+  };
 
   try {
-    // Use Firebase Firestore to get counts
-    const [productsData, categoriesData, ordersData] = await Promise.all([
+    const [products, orders, customers] = await Promise.all([
       getTenantDocuments('products', tenant.id),
-      getTenantDocuments('categories', tenant.id),
       getTenantDocuments('orders', tenant.id),
+      getTenantDocuments('users', tenant.id)
     ]);
-    
-    products = productsData.length;
-    categories = categoriesData.length;
-    orders = ordersData.length;
+
+    stats = {
+      totalProducts: products.length,
+      totalOrders: orders.length,
+      totalCustomers: customers.length,
+      totalRevenue: orders.reduce((sum: number, order: any) => sum + (order.total || 0), 0)
+    };
   } catch (error) {
-    console.error("Error fetching counts:", error);
-    // Use default values if models don't exist yet
+    console.error("Error fetching dashboard stats:", error);
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Overview</h1>
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-        <Stat title="Products" value={products} />
-        <Stat title="Categories" value={categories} />
-        <Stat title="Orders" value={orders} />
-      </div>
-    </div>
-  );
-}
-
-function Stat({ title, value }: { title: string; value: number }) {
-  return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="text-sm text-neutral-500">{title}</div>
-      <div className="text-2xl font-semibold">{value}</div>
-    </div>
+    <AdminDashboard 
+      tenant={{
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        logoUrl: tenant.logoUrl
+      }}
+      tenantSlug={tenantSlug}
+      stats={stats}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantBySlug, updateTenant } from "@/lib/firebase/tenant";
+import { updateTenant } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { upgradeSettings } from "@/lib/settings";
 import { z } from "zod";
 

@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Phone } from 'lucide-react';
-import EnvProbe from './EnvProbe';
 
 function SignInContent() {
   const [email, setEmail] = useState('admin@test.com');
@@ -22,41 +21,34 @@ function SignInContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [phoneConfirmation, setPhoneConfirmation] = useState<any>(null);
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
-  const { signIn, signUp, signInWithGoogle, signInWithPhone, confirmPhoneCode, createSession } = useFirebaseAuth();
+  const { signIn, signUp, signInWithGoogle, signInWithPhone, confirmPhoneCode, createSession, firebaseReady } = useFirebaseAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const getRedirectUrl = (roles?: { platformRole?: string; tenantRole?: string; tenantSlug?: string }) => {
+  const getRedirectUrl = (userType?: string, roles?: { platformRole?: string; tenantRole?: string; tenantSlug?: string }) => {
     // Get redirect from query params
     const redirect = searchParams.get('redirect');
     if (redirect) {
       return redirect;
     }
     
-    // Use roles from session if available, otherwise check cookies
-    let platformRole = roles?.platformRole;
-    let tenantRole = roles?.tenantRole;
-    let tenantSlug = roles?.tenantSlug;
-    
-    if (!platformRole && !tenantRole) {
-      // Fallback to cookie check
-      platformRole = document.cookie.includes('platform_role=') ? 'ADMIN' : undefined;
-      tenantRole = document.cookie.includes('tenant_role=') ? 'admin' : undefined;
-      tenantSlug = document.cookie.includes('tenant_slug=') ? 'demo-store' : undefined;
+    // Use user type and roles from session if available
+    if (userType) {
+      switch (userType) {
+        case 'platform_admin':
+          return '/admin/platform';
+        case 'merchant_admin':
+          const tenantSlug = roles?.tenantSlug || 'demo-store';
+          return `/admin/${tenantSlug}/overview`;
+        case 'customer':
+        default:
+          return '/demo-store/account';
+      }
     }
     
-    // Platform admin redirect
-    if (platformRole) {
-      return '/admin/platform';
-    }
-    
-    // Tenant admin/owner redirect
-    if (tenantRole && ['admin', 'owner'].includes(tenantRole) && tenantSlug) {
-      return `/admin/${tenantSlug}/overview`;
-    }
-    
-    // Default to storefront account page
-    return '/demo-store/account';
+    // If no user type from session, redirect to appropriate sign-in page
+    // This should not happen if custom claims are properly set
+    return '/sign-in';
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
@@ -71,8 +63,8 @@ function SignInContent() {
       // Get roles from session and redirect accordingly
       const idToken = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
       if (idToken) {
-        const roles = await createSession(idToken);
-        window.location.href = getRedirectUrl(roles);
+        const sessionData = await createSession(idToken);
+        window.location.href = getRedirectUrl(sessionData.userType, sessionData.roles);
       } else {
         window.location.href = getRedirectUrl();
       }
@@ -130,8 +122,8 @@ function SignInContent() {
       // Get roles from session and redirect accordingly
       const idToken = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
       if (idToken) {
-        const roles = await createSession(idToken);
-        window.location.href = getRedirectUrl(roles);
+        const sessionData = await createSession(idToken);
+        window.location.href = getRedirectUrl(sessionData.userType, sessionData.roles);
       } else {
         window.location.href = getRedirectUrl();
       }
@@ -181,8 +173,8 @@ function SignInContent() {
       // Get roles from session and redirect accordingly
       const idToken = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
       if (idToken) {
-        const roles = await createSession(idToken);
-        window.location.href = getRedirectUrl(roles);
+        const sessionData = await createSession(idToken);
+        window.location.href = getRedirectUrl(sessionData.userType, sessionData.roles);
       } else {
         window.location.href = getRedirectUrl();
       }
@@ -271,9 +263,9 @@ function SignInContent() {
                   </Button>
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !firebaseReady}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                {!firebaseReady ? 'Loading Firebase...' : 'Sign In'}
               </Button>
             </form>
             
@@ -291,7 +283,7 @@ function SignInContent() {
               variant="outline"
               className="w-full"
               onClick={handleGoogleSignIn}
-              disabled={isLoading}
+              disabled={isLoading || !firebaseReady}
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -320,7 +312,7 @@ function SignInContent() {
                 variant="outline"
                 className="flex-1"
                 onClick={() => setShowPhoneAuth(!showPhoneAuth)}
-                disabled={isLoading}
+                disabled={isLoading || !firebaseReady}
               >
                 <Phone className="mr-2 h-4 w-4" />
                 {showPhoneAuth ? 'Hide Phone' : 'Phone'}
@@ -331,7 +323,7 @@ function SignInContent() {
                 variant="outline"
                 className="flex-1"
                 onClick={handleSignUp}
-                disabled={isLoading}
+                disabled={isLoading || !firebaseReady}
               >
                 Create Account
               </Button>
@@ -353,7 +345,7 @@ function SignInContent() {
                       type="button"
                       className="w-full"
                       onClick={handlePhoneLogin}
-                      disabled={isLoading || !phoneNumber}
+                      disabled={isLoading || !phoneNumber || !firebaseReady}
                     >
                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Send Verification Code
@@ -373,7 +365,7 @@ function SignInContent() {
                       type="button"
                       className="w-full"
                       onClick={handlePhoneCodeVerification}
-                      disabled={isLoading || !verificationCode}
+                      disabled={isLoading || !verificationCode || !firebaseReady}
                     >
                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Verify Code
@@ -397,8 +389,6 @@ function SignInContent() {
         </Card>
       </div>
       
-      {/* Temporary environment probe for debugging */}
-      <EnvProbe />
     </div>
   );
 }

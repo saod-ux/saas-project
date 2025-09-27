@@ -1,4 +1,4 @@
-import { getTenantBySlug } from '@/lib/firebase/tenant';
+import { getTenantBySlug } from '@/lib/services/tenant';
 import { getTenantDocuments, COLLECTIONS } from '@/lib/firebase/db';
 import ShopDropdown from './ShopDropdown';
 import CartButton from '@/components/cart/CartButton';

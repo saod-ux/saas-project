@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCart, clearCart, CheckoutSchema } from '@/lib/cart'
-import { getTenantBySlug } from '@/lib/firebase/tenant'
+import { getTenantBySlug } from '@/lib/services/tenant'
 import { findOrCreateTenantUser } from '@/lib/tenant-user'
 import { getCustomerWithSession } from '@/lib/customer-auth'
 import { getTenantDocuments, createDocument } from '@/lib/db'

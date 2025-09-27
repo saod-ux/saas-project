@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerDb } from "@/lib/firebase/db";
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 

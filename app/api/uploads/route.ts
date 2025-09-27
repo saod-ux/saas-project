@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { updateTenantCategory } from "@/lib/firebase/tenant";
 import { upgradeSettings } from "@/lib/settings";
 import { adminUploadFile } from "@/lib/firebase/storage-server";

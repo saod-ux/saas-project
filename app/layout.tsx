@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { FirebaseAuthProvider } from '@/contexts/FirebaseAuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import QueryProvider from '@/components/providers/QueryProvider'
 
 export const metadata: Metadata = {
   title: 'SaaS Platform',
@@ -13,11 +14,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased">
-        <FirebaseAuthProvider>
-          <LanguageProvider>
-            {children}
-          </LanguageProvider>
-        </FirebaseAuthProvider>
+        <QueryProvider>
+          <FirebaseAuthProvider>
+            <LanguageProvider>
+              {children}
+            </LanguageProvider>
+          </FirebaseAuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )

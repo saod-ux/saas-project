@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantDocuments, createDocument, getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantDocuments, createDocument } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { z } from "zod";
 
 const createDomainSchema = z.object({

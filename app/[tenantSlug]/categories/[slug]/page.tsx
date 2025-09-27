@@ -1,52 +1,71 @@
-import { getTenantBySlug } from "@/lib/firebase/tenant";
-import { getTenantDocuments } from "@/lib/db";
-import Link from "next/link";
-import { t, formatKWD } from "@/lib/arabic";
+import { getTenantBySlug } from "@/lib/services/tenant";
+import { getTenantDocuments } from "@/lib/firebase/tenant";
+import { notFound } from "next/navigation";
+import CategoryDetailClient from "./CategoryDetailClient";
 
-export const revalidate = 0;
+export default async function CategoryDetailPage({ params }: {
+  params: Promise<{ tenantSlug: string; slug: string }>;
+}) {
+  const { tenantSlug, slug } = await params;
+  const tenant = await getTenantBySlug(tenantSlug);
+  
+  if (!tenant) {
+    return notFound();
+  }
 
-export default async function CategoryDetail({ params }:{ params:{ tenantSlug:string; slug:string } }) {
-  const tenant = await getTenantBySlug(params.tenantSlug);
-  if (!tenant) return null;
+  // Get the specific category
+  let category = null;
+  try {
+    const allCategories = await getTenantDocuments('categories', tenant.id);
+    category = allCategories.find((c: any) => c.slug === slug);
+  } catch (error) {
+    console.error("Error fetching category:", error);
+  }
 
-  const categories = await getTenantDocuments('categories', tenant.id);
-  const category = categories.find((cat: any) => cat.slug === params.slug);
-  if (!category) return <main className="p-4">القسم غير موجود</main>;
+  if (!category) {
+    return notFound();
+  }
 
-  // For now, return empty products array since products are not fully implemented in Firebase
-  const products: any[] = [];
+  // Get products in this category
+  let products = [];
+  try {
+    const allProducts = await getTenantDocuments('products', tenant.id);
+    products = allProducts.filter((product: any) => 
+      product.primaryCategoryId === category.id && product.status === 'active'
+    );
+  } catch (error) {
+    console.error("Error fetching products:", error);
+  }
 
   return (
-    <main className="pb-20">
-      <section className="px-3 py-2">
-        <div className="flex items-center justify-between bg-neutral-100 rounded-xl px-3 py-2">
-          <h1 className="font-semibold">{category.name}</h1>
-          <Link href={`/${params.tenantSlug}/retail`} className="text-sm">العودة للرئيسية ←</Link>
-        </div>
-      </section>
-
-      <section className="px-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {products.map(p=>(
-          <article key={p.id} className="rounded-xl overflow-hidden border">
-            <Link href={`/${params.tenantSlug}/product/${p.id}`}>
-              <div className="aspect-[4/5] bg-neutral-100" />
-            </Link>
-            <div className="p-2">
-              <h3 className="text-sm font-semibold line-clamp-1">{p.title}</h3>
-              <div className="text-sm mt-1">
-                {p.compareAtPrice && <span className="line-through text-neutral-500 ms-2">{formatKWD(Number(p.compareAtPrice))}</span>}
-                <span className="font-medium">{formatKWD(Number(p.price))}</span>
-              </div>
-              <p className="text-xs text-neutral-600 mt-1">{t.prepTime}</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button className="h-9 rounded-lg border">{t.add}</button>
-                <button className="h-9 rounded-lg bg-black text-white">{t.buyNow}</button>
-              </div>
-            </div>
-          </article>
-        ))}
-        {products.length === 0 && <div className="col-span-full p-6 text-center text-sm text-neutral-500">{t.noProducts}</div>}
-      </section>
-    </main>
+    <CategoryDetailClient 
+      tenant={{
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        logoUrl: tenant.logoUrl
+      }}
+      tenantSlug={tenantSlug}
+      category={{
+        id: category.id,
+        name: category.name,
+        nameAr: category.nameAr,
+        slug: category.slug,
+        imageUrl: category.imageUrl,
+        description: category.description
+      }}
+      products={products.map(product => ({
+        id: product.id,
+        name: product.name,
+        nameAr: product.nameAr,
+        price: product.price,
+        compareAtPrice: product.compareAtPrice,
+        primaryImageUrl: product.imageUrl || (product.gallery && product.gallery[0]),
+        status: product.status,
+        isBestSeller: product.isBestSeller,
+        isNewArrival: product.isNewArrival,
+        isFeatured: product.isFeatured
+      }))}
+    />
   );
 }

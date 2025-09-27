@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { addSecurityHeaders, developmentSecurityHeaders, securityHeadersConfig } from '@/lib/security/headers';
+import { extractUserContext, requireUserType, requireRole, requireTenantAccess } from '@/lib/auth-middleware';
+import { UserType, UserRole, getSignInUrl } from '@/lib/auth-types';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,7 +16,9 @@ export function middleware(request: NextRequest) {
     '/login',
     '/checkout',
     '/no-tenant',
-    '/onboarding'
+    '/onboarding',
+    '/admin/sign-in',
+    '/platform/sign-in'
   ];
   
   // Skip middleware for static files, API routes, and internal Next.js paths
@@ -25,47 +30,65 @@ export function middleware(request: NextRequest) {
     pathname.includes('.') ||
     publicRoutes.includes(pathname)
   ) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    // Apply security headers to all responses
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    return addSecurityHeaders(response, isDevelopment ? developmentSecurityHeaders : securityHeadersConfig);
   }
 
-  // Protect admin routes
-  if (pathname.startsWith('/admin')) {
-    // Check for session cookie
-    const sessionCookie = request.cookies.get('session')?.value;
-    const uidCookie = request.cookies.get('uid')?.value;
-
-    if (!sessionCookie || !uidCookie) {
-      // Redirect to sign-in with return URL
-      const signInUrl = new URL('/sign-in', request.url);
-      signInUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(signInUrl);
+  // Platform admin routes - require platform admin user type
+  if (pathname.startsWith('/admin/platform')) {
+    const userContext = extractUserContext(request);
+    if (!userContext || userContext.userType !== 'platform_admin') {
+      const signInUrl = getSignInUrl('platform_admin', pathname);
+      const response = NextResponse.redirect(new URL(signInUrl, request.url));
+      return addSecurityHeaders(response, process.env.NODE_ENV === 'development' ? developmentSecurityHeaders : securityHeadersConfig);
     }
-
-    // Enforce roles using session cookies
-    const platformRole = request.cookies.get('platform_role')?.value || '';
-    const tenantRole = request.cookies.get('tenant_role')?.value || '';
-
-    // Platform admin area requires platform role
-    if (pathname.startsWith('/admin/platform')) {
-      const isPlatformAdmin = platformRole === 'ADMIN' || platformRole === 'SUPER_ADMIN';
-      if (!isPlatformAdmin) {
-        const signInUrl = new URL('/sign-in', request.url);
-        signInUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(signInUrl);
-      }
-    } else {
-      // Tenant admin area requires admin/owner role
-      const isAdmin = tenantRole === 'admin' || tenantRole === 'owner';
-      if (!isAdmin) {
-        const signInUrl = new URL('/sign-in', request.url);
-        signInUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(signInUrl);
+  }
+  
+  // Merchant admin routes - require merchant admin user type
+  else if (pathname.startsWith('/admin/')) {
+    const userContext = extractUserContext(request);
+    if (!userContext || (userContext.userType !== 'merchant_admin' && userContext.userType !== 'platform_admin')) {
+      const signInUrl = getSignInUrl('merchant_admin', pathname);
+      const response = NextResponse.redirect(new URL(signInUrl, request.url));
+      return addSecurityHeaders(response, process.env.NODE_ENV === 'development' ? developmentSecurityHeaders : securityHeadersConfig);
+    }
+    
+    // Extract tenant slug from pathname for tenant-specific routes
+    const pathParts = pathname.split('/');
+    if (pathParts.length >= 3 && pathParts[1] === 'admin') {
+      const tenantSlug = pathParts[2];
+      
+      // Platform admins have access to all tenants
+      if (userContext.userType === 'platform_admin') {
+        // Allow access
+      } else if (userContext.userType === 'merchant_admin') {
+        // Check if merchant admin has access to this tenant
+        if (userContext.tenantSlug !== tenantSlug) {
+          // Redirect to their assigned tenant's overview
+          const redirectUrl = userContext.tenantSlug ? `/admin/${userContext.tenantSlug}/overview` : '/admin/sign-in';
+          const response = NextResponse.redirect(new URL(redirectUrl, request.url));
+          return addSecurityHeaders(response, process.env.NODE_ENV === 'development' ? developmentSecurityHeaders : securityHeadersConfig);
+        }
       }
     }
+  }
+  
+  // Customer storefront routes - allow all authenticated users
+  else if (pathname.startsWith('/') && !pathname.startsWith('/admin') && !pathname.startsWith('/platform')) {
+    // For now, allow all storefront routes without authentication
+    // In the future, we might want to protect certain customer routes
+    const response = NextResponse.next();
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    return addSecurityHeaders(response, isDevelopment ? developmentSecurityHeaders : securityHeadersConfig);
   }
 
   // Allow all other routes (storefront, public pages)
-  return NextResponse.next();
+  const response = NextResponse.next();
+  // Apply security headers to all responses
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  return addSecurityHeaders(response, isDevelopment ? developmentSecurityHeaders : securityHeadersConfig);
 }
 
 export const config = {

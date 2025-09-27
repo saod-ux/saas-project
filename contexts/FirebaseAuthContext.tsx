@@ -18,7 +18,7 @@ import {
   GoogleAuthProvider,
   RecaptchaVerifier
 } from 'firebase/auth';
-import { getAuthInstance } from '@/lib/firebase/client';
+import { getFirebase } from '@/lib/firebase/client';
 
 // Create Google Auth Provider instance
 const googleProvider = new GoogleAuthProvider();
@@ -26,6 +26,7 @@ const googleProvider = new GoogleAuthProvider();
 interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
+  firebaseReady: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
@@ -56,16 +57,16 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     console.log('🔍 Firebase Auth Context - Initializing...');
 
     try {
-      const authInstance = getAuthInstance();
-      console.log('🔍 Firebase Auth Context - Auth instance obtained:', { auth: !!authInstance, onAuthStateChanged: !!onAuthStateChanged });
+      const { auth } = getFirebase();
+      console.log('🔍 Firebase Auth Context - Auth instance obtained:', { auth: !!auth, onAuthStateChanged: !!onAuthStateChanged });
 
-      if (!authInstance || !onAuthStateChanged) {
+      if (!auth || !onAuthStateChanged) {
         console.warn('⚠️ Firebase Auth is not available. Please check your Firebase configuration.');
         setLoading(false);
         return;
       }
 
-      const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
         console.log('🔍 Firebase Auth State Changed:', { user: !!user, uid: user?.uid });
         setUser(user);
         setLoading(false);
@@ -103,7 +104,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
       }
 
       const data = await response.json();
-      return data.roles || {};
+      return data;
     } catch (error) {
       console.error('Session creation failed:', error);
       throw error;
@@ -118,7 +119,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
     }
 
     try {
-      const authInstance = getAuthInstance();
+      const { auth: authInstance } = getFirebase();
       console.log('🔍 Sign In - Auth instance obtained:', { auth: !!authInstance, signInWithEmailAndPassword: !!signInWithEmailAndPassword });
 
       if (!authInstance || !signInWithEmailAndPassword) {
@@ -166,7 +167,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const signUp = async (email: string, password: string, displayName?: string) => {
-    const authInstance = getAuthInstance();
+    const authInstance = getFirebase().auth();
     if (!authInstance || !createUserWithEmailAndPassword) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
@@ -188,7 +189,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const signInWithGoogle = async () => {
-    const authInstance = getAuthInstance();
+    const authInstance = getFirebase().auth();
     if (!authInstance || !googleProvider || !signInWithPopup) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
@@ -207,7 +208,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const signInWithPhone = async (phoneNumber: string): Promise<any> => {
-    const authInstance = getAuthInstance();
+    const authInstance = getFirebase().auth();
     if (!authInstance || !signInWithPhoneNumber) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
@@ -243,7 +244,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const confirmPhoneCode = async (confirmationResult: ConfirmationResult, code: string) => {
-    const authInstance = getAuthInstance();
+    const authInstance = getFirebase().auth();
     if (!authInstance) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
@@ -258,7 +259,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const signOutUser = async () => {
-    const authInstance = getAuthInstance();
+    const authInstance = getFirebase().auth();
     if (!authInstance || !signOut) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
@@ -278,7 +279,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const resetPassword = async (email: string) => {
-    const authInstance = getAuthInstance();
+    const authInstance = getFirebase().auth();
     if (!authInstance || !sendPasswordResetEmail) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
@@ -293,7 +294,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   };
 
   const updateUserProfile = async (updates: { displayName?: string; photoURL?: string }) => {
-    const authInstance = getAuthInstance();
+    const authInstance = getFirebase().auth();
     if (!authInstance || !user || !updateProfile) {
       throw new Error('Firebase Auth is not available. Please check your configuration.');
     }
@@ -310,6 +311,7 @@ export function FirebaseAuthProvider({ children }: { children: React.ReactNode }
   const value = {
     user,
     loading,
+    firebaseReady: firebaseLoaded,
     error,
     signIn,
     signUp,

@@ -1,4 +1,4 @@
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { upgradeSettings } from "@/lib/settings";
 
 export type LoadedTenant = { 

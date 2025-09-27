@@ -169,13 +169,19 @@ export const createDocument = async (collectionName: string, data: any) => {
   
   const db = await getServerDb();
   
-  // Use Firebase Admin SDK API
-  const docRef = await db.collection(collectionName).add({
+  // If data has an id, use it; otherwise generate a new one
+  const docId = data.id || db.collection(collectionName).doc().id;
+  
+  // Use Firebase Admin SDK API with set() to use the specific document ID
+  const docRef = db.collection(collectionName).doc(docId);
+  await docRef.set({
     ...data,
+    id: docId, // Ensure the ID is set in the document
     createdAt: dateToTimestamp(new Date()),
     updatedAt: dateToTimestamp(new Date()),
   });
-  return { id: docRef.id, ...data };
+  
+  return { id: docId, ...data };
 };
 
 // Helper function to update a document

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { getTenantBySlug, getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
+import { getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
+import { getTenantBySlug } from '@/lib/services/tenant'
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/server';
-import { getTenantDocuments, createDocument } from '@/lib/db';
+import { validateCustomClaims, getDefaultRole, createCustomClaims, UserType, UserRole } from '@/lib/auth-types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,8 +12,6 @@ export async function POST(req: Request) {
     console.log("[SERVER] Session request", {
       hasIdToken: Boolean(idToken),
       tokenLength: idToken?.length ?? 0,
-      start: typeof idToken === "string" ? idToken.slice(0, 20) : undefined,
-      end: typeof idToken === "string" ? idToken.slice(-20) : undefined,
     });
 
     if (!idToken || typeof idToken !== "string") {
@@ -28,7 +26,6 @@ export async function POST(req: Request) {
     console.log("[SERVER] Token verified", {
       uid: decoded.uid,
       email: decoded.email,
-      projectId: decoded.aud, // aud usually matches project number; optional
     });
     
     const uid = decoded.uid;
@@ -38,94 +35,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Invalid token' }, { status: 401 });
     }
 
-    // Check platform role
-    let platformRole = null;
-    try {
-      const platformUsers = await getTenantDocuments('platformUsers', '');
-      let platformUser = platformUsers.find((user: any) => user.uid === uid);
-      
-      if (!platformUser) {
-        // Create platform user if doesn't exist
-        console.log('Creating new platform user:', uid);
-        platformUser = {
-          uid,
-          email,
-          role: 'platformAdmin', // Give platform admin role for new users
-          createdAt: new Date().toISOString(),
-        };
-        await createDocument('platformUsers', platformUser);
-      }
-      
-      if (platformUser?.role) {
-        platformRole = platformUser.role;
-      }
-    } catch (error) {
-      console.log('Error handling platform user:', error);
+    // Get custom claims from the token
+    const customClaims = decoded.customClaims || {};
+    console.log('[SERVER] Custom claims:', customClaims);
+
+    // Validate that custom claims contain required user type information
+    if (!validateCustomClaims(customClaims)) {
+      console.log('[SERVER] Invalid or missing custom claims, denying access');
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'INVALID_CLAIMS',
+        message: 'User type not properly configured. Please contact support.' 
+      }, { status: 403 });
     }
 
-    // Check tenant roles (for now, we'll use a default tenant)
-    let tenantRole = null;
-    let tenantSlug = null;
-    try {
-      // For MVP, check if user has any tenant membership
-      const allTenants = await getTenantDocuments('tenants', '');
-      let foundTenant = false;
-      
-      for (const tenant of allTenants) {
-        const tenantUsers = await getTenantDocuments('tenantUsers', tenant.id);
-        let tenantUser = tenantUsers.find((user: any) => user.uid === uid);
-        
-        if (!tenantUser) {
-          // Create tenant user if doesn't exist
-          console.log('Creating new tenant user:', uid, 'for tenant:', tenant.id);
-          tenantUser = {
-            uid,
-            email,
-            role: 'admin', // Give admin role for new users
-            createdAt: new Date().toISOString(),
-          };
-          await createDocument('tenantUsers', tenantUser);
-        }
-        
-        if (tenantUser?.role) {
-          tenantRole = tenantUser.role;
-          tenantSlug = tenant.slug;
-          foundTenant = true;
-          break;
-        }
-      }
-      
-      // If no tenants exist, create a default one
-      if (!foundTenant && allTenants.length === 0) {
-        console.log('Creating default tenant for user:', uid);
-        const defaultTenant = {
-          name: 'Demo Store',
-          slug: 'demo-store',
-          createdAt: new Date().toISOString(),
-        };
-        await createDocument('tenants', defaultTenant);
-        
-        const tenantUser = {
-          uid,
-          email,
-          role: 'admin',
-          createdAt: new Date().toISOString(),
-        };
-        await createDocument('tenantUsers', tenantUser);
-        
-        tenantRole = 'admin';
-        tenantSlug = 'demo-store';
-      }
-    } catch (error) {
-      console.log('Error handling tenant user:', error);
-    }
+    const userType = customClaims.userType as UserType;
+    const role = customClaims.role as UserRole;
+    const tenantId = customClaims.tenantId;
+    const tenantSlug = customClaims.tenantSlug;
+
+    console.log('[SERVER] User context:', { userType, role, tenantId, tenantSlug });
 
     // Set secure HttpOnly cookies
     const response = NextResponse.json({ 
       ok: true, 
       uid, 
       email, 
-      roles: { platformRole, tenantRole, tenantSlug }
+      userType,
+      roles: { 
+        platformRole: userType === 'platform_admin' ? role : null,
+        tenantRole: userType === 'merchant_admin' ? role : null,
+        tenantSlug 
+      }
     });
 
     // Set session cookie
@@ -146,9 +87,27 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 7 // 7 days
     });
 
+    // Set user type cookie
+    response.cookies.set('user_type', userType, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    });
+
+    // Set email cookie
+    response.cookies.set('email', email, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    });
+
     // Set role cookies
-    if (platformRole) {
-      response.cookies.set('platform_role', platformRole, {
+    if (userType === 'platform_admin' && role) {
+      response.cookies.set('platform_role', role, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -157,8 +116,8 @@ export async function POST(req: Request) {
       });
     }
 
-    if (tenantRole) {
-      response.cookies.set('tenant_role', tenantRole, {
+    if (userType === 'merchant_admin' && role) {
+      response.cookies.set('tenant_role', role, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -177,13 +136,22 @@ export async function POST(req: Request) {
       });
     }
 
+    if (tenantId) {
+      response.cookies.set('tenant_id', tenantId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7 // 7 days
+      });
+    }
+
     return response;
   } catch (err: any) {
     console.error("[SERVER] Session creation error", {
       name: err?.name,
       code: err?.code,
       message: err?.message,
-      stack: err?.stack?.split("\n").slice(0, 3).join("\n"),
     });
     return NextResponse.json(
       { ok: false, error: err?.code || "SESSION_ERROR", message: err?.message },
@@ -197,7 +165,7 @@ export async function DELETE(request: NextRequest) {
     const response = NextResponse.json({ ok: true });
     
     // Clear all auth cookies
-    const cookiesToClear = ['session', 'uid', 'platform_role', 'tenant_role', 'tenant_slug'];
+    const cookiesToClear = ['session', 'uid', 'user_type', 'email', 'platform_role', 'tenant_role', 'tenant_slug', 'tenant_id'];
     
     cookiesToClear.forEach(cookieName => {
       response.cookies.set(cookieName, '', {

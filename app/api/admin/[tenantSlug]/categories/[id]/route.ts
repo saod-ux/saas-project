@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getTenantBySlug, getTenantCategoryById, updateTenantCategory, deleteTenantCategory } from '@/lib/firebase/tenant'
+import { getTenantCategoryById, updateTenantCategory, deleteTenantCategory } from '@/lib/firebase/tenant'
+import { getTenantBySlug } from '@/lib/services/tenant'
+import { ok, notFound, badRequest, errorResponse } from '@/lib/http/responses'
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -24,13 +26,13 @@ export async function GET(
     // Get tenant
     const tenant = await getTenantBySlug(params.tenantSlug)
     if (!tenant) {
-      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+      return notFound('Tenant not found')
     }
     
     // Get category
     const category = await getTenantCategoryById(tenant.id, params.id)
     if (!category) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+      return notFound('Category not found')
     }
     
     // Add _count field for compatibility with UI
@@ -41,10 +43,10 @@ export async function GET(
       }
     }
     
-    return NextResponse.json({ ok: true, data: categoryWithCount })
+    return ok(categoryWithCount)
   } catch (error) {
     console.error('Error fetching category:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error')
   }
 }
 
@@ -56,7 +58,7 @@ export async function PUT(
     // Get tenant
     const tenant = await getTenantBySlug(params.tenantSlug)
     if (!tenant) {
-      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+      return notFound('Tenant not found')
     }
     
     const body = await request.json()
@@ -67,7 +69,7 @@ export async function PUT(
     // Check if category exists and belongs to tenant
     const existingCategory = await getTenantCategoryById(tenant.id, params.id)
     if (!existingCategory) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+      return notFound('Category not found')
     }
 
     // Update category - filter out undefined values and ensure all required fields are present
@@ -96,25 +98,15 @@ export async function PUT(
       }
     }
 
-    return NextResponse.json({
-      ok: true,
-      data: categoryWithCount,
-      message: 'Category updated successfully'
-    })
+    return ok(categoryWithCount)
   } catch (error) {
     console.error('Error updating category:', error)
     
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      )
+      return badRequest('Invalid request data', { details: error.errors })
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return errorResponse('Internal server error')
   }
 }
 
@@ -126,28 +118,22 @@ export async function DELETE(
     // Get tenant
     const tenant = await getTenantBySlug(params.tenantSlug)
     if (!tenant) {
-      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+      return notFound('Tenant not found')
     }
     
     // Check if category exists and belongs to tenant
     const existingCategory = await getTenantCategoryById(tenant.id, params.id)
     if (!existingCategory) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+      return notFound('Category not found')
     }
 
     // Delete category
     await deleteTenantCategory(tenant.id, params.id)
 
-    return NextResponse.json({
-      ok: true,
-      message: 'Category deleted successfully'
-    })
+    return ok({ message: 'Category deleted successfully' })
 
   } catch (error) {
     console.error('Error deleting category:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return errorResponse('Internal server error')
   }
 }

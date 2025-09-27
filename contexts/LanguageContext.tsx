@@ -1,53 +1,56 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getTranslations } from '@/lib/i18n';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+type Language = 'en' | 'ar';
 
 interface LanguageContextType {
-  locale: string;
-  setLocale: (locale: string) => void;
-  t: (key: string) => string;
-  isArabic: boolean;
-  // Additional properties for compatibility
-  lang: string;
-  setLang: (lang: string) => void;
-  language: string;
+  language: Language;
+  setLanguage: (lang: Language) => void;
   isRTL: boolean;
+  isHydrated: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState('ar'); // Default to Arabic
-  
-  // Load locale from localStorage on mount
+interface LanguageProviderProps {
+  children: ReactNode;
+}
+
+export function LanguageProvider({ children }: LanguageProviderProps) {
+  const [language, setLanguageState] = useState<Language>('en');
+  const [isHydrated, setIsHydrated] = useState(false);
+
   useEffect(() => {
-    const savedLocale = localStorage.getItem('admin-locale');
-    if (savedLocale) {
-      setLocaleState(savedLocale);
+    // Mark as hydrated
+    setIsHydrated(true);
+    
+    // Load language from localStorage on mount
+    const savedLanguage = localStorage.getItem('language') as Language;
+    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'ar')) {
+      setLanguageState(savedLanguage);
     }
   }, []);
 
-  const setLocale = (newLocale: string) => {
-    setLocaleState(newLocale);
-    localStorage.setItem('admin-locale', newLocale);
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem('language', lang);
+    
+    // Update HTML dir attribute
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
   };
 
-  const t = getTranslations(locale);
-  const isArabic = locale.startsWith('ar');
-  const isRTL = isArabic;
+  const isRTL = language === 'ar';
+
+  // Set initial HTML attributes
+  useEffect(() => {
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+  }, [language, isRTL]);
 
   return (
-    <LanguageContext.Provider value={{ 
-      locale, 
-      setLocale, 
-      t, 
-      isArabic,
-      lang: locale,
-      setLang: setLocale,
-      language: locale,
-      isRTL
-    }}>
+    <LanguageContext.Provider value={{ language, setLanguage, isRTL, isHydrated }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getTenantBySlug, updateTenant, getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
+import { updateTenant, getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
+import { getTenantBySlug } from '@/lib/services/tenant'
 import { requirePlatformRole } from '@/lib/auth'
+import { ok, badRequest, notFound, errorResponse } from '@/lib/http/responses'
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -31,19 +33,11 @@ export async function PATCH(
     // Check if tenant exists
     const existingTenant = await getTenantBySlug(slug);
 
-    if (!existingTenant) {
-      return NextResponse.json(
-        { error: 'Tenant not found' },
-        { status: 404 }
-      )
-    }
+    if (!existingTenant) return notFound('Tenant not found')
 
     // Prevent downgrading from ARCHIVED
     if (existingTenant.status === 'ARCHIVED' && validatedData.status !== 'ARCHIVED') {
-      return NextResponse.json(
-        { error: 'Cannot change status of archived tenant. Contact support to restore.' },
-        { status: 400 }
-      )
+      return badRequest('Cannot change status of archived tenant. Contact support to restore.')
     }
 
     // Update tenant status
@@ -76,32 +70,20 @@ export async function PATCH(
       console.log(`Tenant ${slug} suspended. Notifying ${allMemberships.length} members.`)
     }
 
-    return NextResponse.json({
-      ok: true,
-      data: {
-        id: updatedTenant.id,
-        slug: updatedTenant.slug,
-        name: updatedTenant.name,
-        status: updatedTenant.status,
-        updatedAt: updatedTenant.updatedAt
-      },
-      message: `Tenant status updated to ${validatedData.status}`
+    return ok({
+      id: updatedTenant.id,
+      slug: updatedTenant.slug,
+      name: updatedTenant.name,
+      status: updatedTenant.status,
+      updatedAt: updatedTenant.updatedAt
     })
 
   } catch (error) {
     console.error('Error updating tenant status:', error)
     
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      )
-    }
+    if (error instanceof z.ZodError) return badRequest({ message: 'Invalid request data', details: error.errors })
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return errorResponse('Internal server error')
   }
 }
 
@@ -119,12 +101,7 @@ export async function GET(
 
     const tenant = await getTenantBySlug(slug);
 
-    if (!tenant) {
-      return NextResponse.json(
-        { error: 'Tenant not found' },
-        { status: 404 }
-      )
-    }
+    if (!tenant) return notFound('Tenant not found')
 
     // Get related data
     const allMemberships = await getTenantDocuments('memberships', tenant.id);
@@ -159,17 +136,11 @@ export async function GET(
       }
     };
 
-    return NextResponse.json({
-      ok: true,
-      data: tenantWithCounts
-    })
+    return ok(tenantWithCounts)
 
   } catch (error) {
     console.error('Error fetching tenant status:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return errorResponse('Internal server error')
   }
 }
 

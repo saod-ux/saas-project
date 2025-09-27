@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getTenantBySlug, getTenantDocuments } from '@/lib/firebase/tenant'
+import { getTenantDocuments } from '@/lib/firebase/tenant'
+import { getTenantBySlug } from '@/lib/services/tenant'
 import { addToCart, CartAddSchema } from '@/lib/cart'
+import { ok, notFound, badRequest, errorResponse } from '@/lib/http/responses'
+import { validateBusinessRule, BusinessRules } from '@/lib/business-rules'
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,12 +19,23 @@ export async function POST(
     // Get tenant
     const tenant = await getTenantBySlug(tenantSlug)
     if (!tenant) {
-      return NextResponse.json({ ok: false, error: 'TENANT_NOT_FOUND' }, { status: 404 })
+      return notFound('TENANT_NOT_FOUND')
     }
 
     // Parse and validate request body
     const body = await request.json()
     const { productId, qty } = CartAddSchema.parse(body)
+
+    // Apply business rules validation
+    const businessRuleResult = await validateBusinessRule(
+      BusinessRules.Cart.validateCartItem,
+      { productId, quantity: qty },
+      { tenantId: tenant.id }
+    );
+    
+    if (!businessRuleResult.success) {
+      return businessRuleResult.response;
+    }
 
     // Fetch product
     const allProducts = await getTenantDocuments('products', tenant.id)
@@ -30,7 +44,7 @@ export async function POST(
     )
 
     if (!product) {
-      return NextResponse.json({ ok: false, error: 'PRODUCT_NOT_FOUND' }, { status: 404 })
+      return notFound('PRODUCT_NOT_FOUND')
     }
 
     // Add to cart
@@ -42,27 +56,17 @@ export async function POST(
       qty
     )
 
-    return NextResponse.json({
-      ok: true,
-      data: {
-        cart,
-        itemCount: cart.items.reduce((total, item) => total + item.qty, 0)
-      }
+    return ok({
+      cart,
+      itemCount: cart.items.reduce((total, item) => total + item.qty, 0)
     })
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'VALIDATION_ERROR',
-        details: error.errors 
-      }, { status: 400 })
+      return badRequest('VALIDATION_ERROR', { details: error.errors })
     }
 
     console.error('Cart add error:', error)
-    return NextResponse.json({ 
-      ok: false, 
-      error: 'INTERNAL_ERROR' 
-    }, { status: 500 })
+    return errorResponse('INTERNAL_ERROR')
   }
 }

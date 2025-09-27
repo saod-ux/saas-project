@@ -1,19 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { getAllDocuments, getTenantDocuments, COLLECTIONS } from "@/lib/firebase/db";
+import { ok, notFound, errorResponse } from '@/lib/http/responses';
+import { withPublicCors, CorsConfig } from '@/lib/security/cors';
+import { caches, cacheKeys, getCachedOrFetch } from '@/lib/performance/cache';
 
 export const runtime = "nodejs";
 
-// CORS helper function
-function addCorsHeaders(response: NextResponse, origin?: string | null): NextResponse {
-  if (origin) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
-  }
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  response.headers.set('Access-Control-Max-Age', '86400');
-  return response;
-}
+// Custom CORS configuration for storefront products
+const storefrontCorsConfig: CorsConfig = {
+  origin: async (origin: string) => {
+    // Allow same-origin requests
+    if (!origin) return true;
+    
+    // Allow localhost for development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
+      return true;
+    }
+    
+    // For production, we'll implement domain verification
+    // This is a simplified version - in production you'd check against verified domains
+    return true; // Allow all origins for now, but this should be restricted
+  },
+  methods: ['GET', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
+  maxAge: 86400
+};
 
 // Check if origin is allowed for CORS
 async function isOriginAllowed(origin: string, tenantSlug: string): Promise<boolean> {
@@ -42,7 +55,16 @@ async function isOriginAllowed(origin: string, tenantSlug: string): Promise<bool
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
   const response = new NextResponse(null, { status: 200 });
-  return addCorsHeaders(response, origin);
+  
+  // Apply CORS headers
+  if (origin) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+  }
+  response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.headers.set('Access-Control-Max-Age', '86400');
+  
+  return response;
 }
 
 export async function GET(
@@ -62,7 +84,7 @@ export async function GET(
 
     const tenant = await getTenantBySlug(params.tenantSlug);
     if (!tenant) {
-      return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+      return notFound("Tenant not found");
     }
 
     const { searchParams } = new URL(request.url);
@@ -70,11 +92,16 @@ export async function GET(
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Get all products for the tenant
-    const allProducts = await getTenantDocuments(COLLECTIONS.PRODUCTS, tenant.id);
+    // Get all products for the tenant (with caching)
+    const cacheKey = cacheKeys.products(tenant.id, categoryId || undefined);
+    const allProducts = await getCachedOrFetch(
+      caches.products,
+      cacheKey,
+      () => getTenantDocuments(COLLECTIONS.PRODUCTS, tenant.id)
+    );
     
     // Filter active products
-    let products = allProducts.filter((product: any) => product.status === "ACTIVE");
+    let products = allProducts.filter((product: any) => product.status === "active");
 
     // Filter by category if specified
     if (categoryId) {
@@ -100,9 +127,8 @@ export async function GET(
       tenantLogoUrl: tenant.logoUrl,
     }));
 
-    const response = NextResponse.json({ 
-      ok: true, 
-      data: productsWithImages,
+    const response = ok({
+      products: productsWithImages,
       tenant: {
         id: tenant.id,
         name: tenant.name,
@@ -110,13 +136,28 @@ export async function GET(
       }
     });
 
-    return addCorsHeaders(response, origin);
+    // Apply CORS headers
+    if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+    response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Max-Age', '86400');
+
+    return response;
   } catch (error) {
     console.error("Error fetching storefront products:", error);
-    const response = NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to fetch products" },
-      { status: 500 }
-    );
-    return addCorsHeaders(response, request.headers.get('origin'));
+    const response = errorResponse(error instanceof Error ? error.message : "Failed to fetch products");
+    
+    // Apply CORS headers to error response
+    const origin = request.headers.get('origin');
+    if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+    response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Max-Age', '86400');
+    
+    return response;
   }
 }

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantBySlug, createTenantCategory } from "@/lib/firebase/tenant";
+import { createTenantCategory } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { getTenantDocuments, COLLECTIONS } from "@/lib/firebase/db";
 import { z } from "zod";
+import { ok, notFound, badRequest, errorResponse } from '@/lib/http/responses';
 
 export const runtime = "nodejs";
 
@@ -24,10 +26,7 @@ export async function GET(
     // Get tenant by slug
     const tenant = await getTenantBySlug(params.tenantSlug);
     if (!tenant) {
-      return NextResponse.json(
-        { ok: false, error: "Tenant not found" },
-        { status: 404 }
-      );
+      return notFound("Tenant not found");
     }
     
     // Get categories from Firebase
@@ -46,13 +45,10 @@ export async function GET(
         }
       }));
 
-    return NextResponse.json({ ok: true, data: sortedCategories });
+    return ok(sortedCategories);
   } catch (error) {
     console.error("Error fetching categories:", error);
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to fetch categories" },
-      { status: 500 }
-    );
+    return errorResponse(error instanceof Error ? error.message : "Failed to fetch categories");
   }
 }
 
@@ -64,10 +60,7 @@ export async function POST(
     // Get tenant by slug
     const tenant = await getTenantBySlug(params.tenantSlug);
     if (!tenant) {
-      return NextResponse.json(
-        { ok: false, error: "Tenant not found" },
-        { status: 404 }
-      );
+      return notFound("Tenant not found");
     }
     
     const body = await request.json();
@@ -86,18 +79,12 @@ export async function POST(
       imageUrl: validatedData.imageUrl ?? null,
     });
 
-    return NextResponse.json({ ok: true, data: category });
+    return ok(category);
   } catch (error) {
     console.error("Error creating category:", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { ok: false, error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
+      return badRequest("Validation error", { details: error.errors });
     }
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to create category" },
-      { status: 500 }
-    );
+    return errorResponse(error instanceof Error ? error.message : "Failed to create category");
   }
 }

@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getTenantDocuments, createDocument, getTenantBySlug } from '@/lib/firebase/tenant'
+import { getTenantDocuments, createDocument } from '@/lib/firebase/tenant'
+import { getTenantBySlug } from '@/lib/services/tenant'
 import { revalidatePath } from 'next/cache'
 import { slugifyUnique } from '@/lib/slug'
 

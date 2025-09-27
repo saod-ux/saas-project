@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createTenant, getTenantBySlug } from "@/lib/firebase/tenant";
+import { createTenant } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { createTenantCategory } from "@/lib/firebase/tenant";
 import { requirePlatformRole } from "@/lib/auth";
 

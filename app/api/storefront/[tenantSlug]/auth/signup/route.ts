@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTenantBySlug, getTenantDocuments, createDocument, updateDocument } from '@/lib/firebase/tenant';
+import { getTenantDocuments, createDocument, updateDocument } from '@/lib/firebase/tenant';
+import { getTenantBySlug } from '@/lib/services/tenant';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { ok, notFound, badRequest, errorResponse } from '@/lib/http/responses';
+import { withAuthRateLimit } from '@/lib/rate-limiting';
+import { sanitizeEmail, sanitizeBasic, isValidEmail } from '@/lib/security/sanitization';
+import { validateBody, schemas } from '@/lib/validation';
 
-const signupSchema = z.object({
-  email: z.string().email('Invalid email address'),
+// Use the comprehensive user schema from our validation system
+const signupSchema = schemas.CreateUser.pick({
+  email: true,
+  name: true,
+  phone: true,
+}).extend({
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z.string().optional(),
 });
 
-export async function POST(
+export const POST = withAuthRateLimit(async function(
   request: NextRequest,
   { params }: { params: { tenantSlug: string } }
 ) {
@@ -21,15 +28,33 @@ export async function POST(
     // Load tenant
     const tenant = await getTenantBySlug(tenantSlug);
     if (!tenant) {
-      return NextResponse.json(
-        { ok: false, error: 'Store not found' },
-        { status: 404 }
-      );
+      return notFound('Store not found');
     }
 
     const body = await request.json();
-    const validatedData = signupSchema.parse(body);
-    const { email, password, name, phone } = validatedData;
+    
+    // Validate data using our schema
+    const validationResult = signupSchema.safeParse(body);
+    if (!validationResult.success) {
+      return badRequest('Validation failed', { 
+        details: validationResult.error.errors,
+        code: 'VALIDATION_ERROR'
+      });
+    }
+    
+    // Sanitize validated data
+    const sanitizedData = {
+      email: sanitizeEmail(validationResult.data.email || ''),
+      password: validationResult.data.password || '', // Don't sanitize passwords
+      name: sanitizeBasic(validationResult.data.name || ''),
+      phone: validationResult.data.phone ? sanitizeBasic(validationResult.data.phone) : undefined
+    };
+    
+    // Additional email validation
+    if (!isValidEmail(sanitizedData.email)) {
+      return badRequest('Invalid email address');
+    }
+    const { email, password, name, phone } = sanitizedData;
 
     // Check if customer already exists
     const allUsers = await getTenantDocuments('users', '');
@@ -38,10 +63,7 @@ export async function POST(
     );
     
     if (existingCustomer) {
-      return NextResponse.json(
-        { ok: false, error: 'An account with this email already exists' },
-        { status: 409 }
-      );
+      return badRequest('An account with this email already exists');
     }
 
     // Hash password
@@ -59,10 +81,7 @@ export async function POST(
     });
 
     if (!customer) {
-      return NextResponse.json(
-        { ok: false, error: 'Failed to create account' },
-        { status: 500 }
-      );
+      return errorResponse('Failed to create account');
     }
 
     // Generate JWT token
@@ -78,38 +97,29 @@ export async function POST(
     );
 
     // Return customer data and token
-    return NextResponse.json({
-      ok: true,
-      data: {
-        customer: {
-          id: customer.id,
-          email: customer.email,
-          name: customer.name,
-          phone: customer.phone,
-          isGuest: customer.isGuest,
-        },
-        token,
-        tenant: {
-          id: tenant.id,
-          name: tenant.name,
-          slug: tenant.slug,
-        }
+    return ok({
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        name: customer.name,
+        phone: customer.phone,
+        isGuest: customer.isGuest,
+      },
+      token,
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
       }
-    }, { status: 201 });
+    }, 201);
 
   } catch (error) {
     console.error('Signup error:', error);
     
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { ok: false, error: 'Validation error', details: error.errors },
-        { status: 400 }
-      );
+      return badRequest('Validation error', { details: error.errors });
     }
 
-    return NextResponse.json(
-      { ok: false, error: 'Signup failed' },
-      { status: 500 }
-    );
+    return errorResponse('Signup failed');
   }
-}
+});

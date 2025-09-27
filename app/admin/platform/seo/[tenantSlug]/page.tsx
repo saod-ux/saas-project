@@ -1,4 +1,4 @@
-import { getTenantBySlug } from "@/lib/firebase/tenant";
+import { getTenantBySlug } from "@/lib/services/tenant";
 import { notFound } from "next/navigation";
 import SEOForm from "@/components/platform-admin/SEO/SEOForm";
 import { PageHelp } from "@/components/admin/PageHelp";
